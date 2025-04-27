@@ -3,23 +3,19 @@
 CC ?= gcc
 PREFIX ?= /usr/local
 
-OPT= -O2 -Wall -fPIC  -g
+OPT= -O2 -Wall -fPIC -shared
 
 
-CFLAGS  = -I$(PREFIX)/include/luajit-2.1 
-
-
-LDFLAGS += -L/usr/lib -lluajit-5.1 -lssl -lcrypto
-
-CFLAGS += -I$(PREFIX)/include
-LDFLAGS += -L$(PREFIX)/lib -lsqlite
+CFLAGS = -I$(PREFIX)/include
+CFLAGS += -I$(PREFIX)/include/luajit-2.1 
+LDFLAGS = -L$(PREFIX)/lib -lluajit-5.1 -lsqlite3
 
 
 
 MOD = lsqlite
 SRCS = $(MOD).c 
 EXT = .so
-OUT = $(MOD)
+OUT = $(MOD)$(EXT)
 
 all: $(OUT)
 
