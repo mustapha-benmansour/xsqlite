@@ -1,0 +1,409 @@
+
+
+#include "sqlite3.h"
+#include <lua.h>
+#include <lauxlib.h>
+#include <sqlite3.h>
+#include <stdio.h>
+#include <string.h>
+
+#define LSQLITE_MT "sqlite3**"
+
+
+
+
+
+
+
+#define Q_CHECK_OK(L,db,ret) \
+    if ((ret) != SQLITE_OK) { \
+        lua_pushfstring((L),"E%d %s, %s",sqlite3_errcode(db),sqlite3_errstr((ret)),sqlite3_errmsg(db));\
+        return lua_error((L));\
+    } 
+
+#define Q_CHECK_STMT_OK(L,stmt,ret) \
+    if ((ret) != SQLITE_OK) { \
+        sqlite3 * db=sqlite3_db_handle(stmt);\
+        lua_pushfstring((L),"E%d %s, %s",sqlite3_errcode(db),sqlite3_errstr((ret)),sqlite3_errmsg(db));\
+        return lua_error((L));\
+    } 
+
+#define Q_STMT_ERROR(L,stmt,ret) \
+        sqlite3 * db=sqlite3_db_handle(stmt);\
+        lua_pushfstring((L),"E%d %s, %s",sqlite3_errcode(db),sqlite3_errstr((ret)),sqlite3_errmsg(db));\
+        return lua_error((L));
+
+
+
+//================= SQLITE
+
+int lsqlite_version(lua_State * L){
+    lua_pushstring(L,sqlite3_libversion());
+    return 1;
+}
+
+int lsqlite_open(lua_State * L){
+    const char * db_name=luaL_checkstring(L, 1);
+    sqlite3 * db;
+    int flags=luaL_optint(L, 2, SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE);
+    int ret=sqlite3_open_v2(db_name, &db, flags, NULL);
+    Q_CHECK_OK(L,db,ret);
+    sqlite3 ** pdb =  lua_newuserdata(L,sizeof(sqlite3*));
+    if (pdb==NULL){
+        sqlite3_close_v2(db);
+        return luaL_error(L,"ENOMEM");
+    }
+    *pdb=db;
+    lua_pushvalue(L, lua_upvalueindex(1));
+    lua_setmetatable(L,-2);
+    return 1;
+}
+
+
+
+//================= DB
+static int lsqlite_db_gc(lua_State * L){
+    sqlite3 ** pdb=lua_touserdata(L, 1);
+    if ((*pdb)!=NULL){
+        sqlite3_close_v2(*pdb);
+        *pdb=NULL;
+    }
+    return 0;
+}
+
+static int lsqlite_db_close(lua_State * L){
+    sqlite3 ** pdb=lua_touserdata(L, 1);
+    if ((*pdb)==NULL)
+        return luaL_error(L,"already closed");
+    Q_CHECK_OK(L,*pdb,sqlite3_close(*pdb));
+    *pdb=NULL;
+    return 0;
+}
+static int lsqlite_db_closed(lua_State * L){
+    sqlite3 ** pdb=lua_touserdata(L, 1);
+    lua_pushboolean(L, (*pdb)==NULL);
+    return 1;
+}
+
+
+int lsqlite_autocommit(lua_State * L){
+    //lua_pushstring(L,sqlite3_libversion());
+    sqlite3 ** pdb=lua_touserdata(L, 1);
+    lua_pushboolean(L,sqlite3_get_autocommit(*pdb)==1);
+    return 1;
+}
+
+
+
+
+
+int lsqlite_db_prepare(lua_State * L){
+    sqlite3 ** pdb = lua_touserdata(L,1);
+    size_t sql_len;
+    const char *sql = luaL_checklstring(L, 2,&sql_len);
+    sqlite3_stmt * stmt;
+    Q_CHECK_OK(L,*pdb,sqlite3_prepare_v2(*pdb, sql,sql_len,&stmt,NULL));
+    sqlite3_stmt ** pstmt =  lua_newuserdata(L,sizeof(sqlite3_stmt*));
+    if (pstmt==NULL){
+        sqlite3_finalize(stmt);
+        return luaL_error(L,"ENOMEM");
+    }
+    *pstmt=stmt;
+    lua_pushvalue(L, lua_upvalueindex(1));
+    lua_setmetatable(L,-2);
+    return 1;
+}
+
+
+int lsqlite_db_exec(lua_State * L){
+    sqlite3 ** pdb = lua_touserdata(L,1);
+    const char *sql = luaL_checkstring(L, 2);
+    Q_CHECK_OK(L,*pdb,sqlite3_exec(*pdb,sql,NULL,NULL,NULL));
+    return 0;
+}
+
+
+
+int lsqlite_db_changes(lua_State * L){
+    sqlite3 ** pdb = lua_touserdata(L,1);
+    lua_pushinteger(L,sqlite3_changes(*pdb));
+    return 1;
+}
+
+
+int lsqlite_db_id(lua_State * L){
+    sqlite3 ** pdb = lua_touserdata(L,1);
+    int var=sqlite3_last_insert_rowid(*pdb);
+    if (var!=0) 
+        return 0;
+    lua_pushinteger(L,sqlite3_last_insert_rowid(*pdb));
+    return 1;
+}
+
+
+
+
+
+//================= STMT
+
+static int lsqlite_stmt_gc(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    if ((*pstmt)!=NULL){
+        //printf("stmt_gc %d\n",
+        sqlite3_finalize(*pstmt);//);
+        *pstmt=NULL;
+    }
+    return 0;
+}
+
+static int lsqlite_stmt_finalize(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    if ((*pstmt)==NULL)
+        return luaL_error(L,"already finalized");
+    Q_CHECK_STMT_OK(L,*pstmt, sqlite3_finalize(*pstmt));
+    *pstmt=NULL;
+    return 0;
+}
+
+static int lsqlite_stmt_finalized(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    lua_pushboolean(L, (*pstmt)==NULL);
+    return 1;
+}
+
+
+
+static int _lsqlite_stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int l_value_idex){
+    int var;
+    switch(lua_type(L,l_value_idex)){
+        case LUA_TNIL:var= sqlite3_bind_null(stmt,q_index);break;
+        case LUA_TNUMBER:var= sqlite3_bind_int(stmt,q_index,lua_tointeger(L,l_value_idex));break;
+        case LUA_TSTRING:{
+            size_t sz;
+            const char * value=lua_tolstring(L,l_value_idex,&sz);
+            var= sqlite3_bind_text(stmt,q_index,value,sz,SQLITE_TRANSIENT);
+        }
+        break;
+        case LUA_TBOOLEAN:var= sqlite3_bind_int(stmt,q_index,lua_toboolean(L,l_value_idex));break;
+        case LUA_TTABLE:{
+            lua_rawgeti(L, l_value_idex,1);
+            var=lua_type(L,-1);
+            if (var==LUA_TNUMBER){
+                var=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,-1));
+                break;
+            }
+            if (var==LUA_TSTRING){
+                size_t sz;
+                const char * value=lua_tolstring(L,-1,&sz);
+                var=sqlite3_bind_blob(stmt,q_index,value,sz,SQLITE_TRANSIENT);
+                break;
+            }
+            luaL_error(L,"invalid type");return 0;
+        }
+        default: luaL_error(L,"invalid type");return 0;
+    } 
+    Q_CHECK_STMT_OK(L,stmt,var);
+}
+
+static int lsqlite_stmt_bind(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    int q_index;
+    if (lua_type(L,2)==LUA_TSTRING)
+        q_index=sqlite3_bind_parameter_index(*pstmt,lua_tostring(L, 2));
+    else
+        q_index=lua_tointeger(L,2);
+    _lsqlite_stmt_bind(L,*pstmt,q_index,3);
+    lua_settop(L,1);
+    return 1;
+}
+
+static int lsqlite_stmt_bind_all(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    int count=sqlite3_bind_parameter_count(*pstmt);
+    int i;
+    const char * name;
+    for(i=1;i<=count;i++){
+        name = sqlite3_bind_parameter_name(*pstmt, i );
+        if (name && (name[0]=='$' || name[0]=='@' || name[0]==':')){
+            lua_pushstring(L, ++name);
+            //lua_gettable(L,2);
+            lua_rawget(L, 2);
+        }else{
+            lua_pushinteger(L, i);
+            //lua_gettable(L,2);
+            lua_rawget(L, 2);
+        }
+        _lsqlite_stmt_bind(L,*pstmt,i,-1);
+    }
+    lua_settop(L,1);
+    return 1;
+}
+
+
+static int lsqlite_stmt_done(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    int var=sqlite3_step(*pstmt);
+    if (var==SQLITE_DONE || var==SQLITE_ROW){
+        var=sqlite3_reset(*pstmt);
+    }        
+    Q_CHECK_STMT_OK(L,*pstmt,var);
+    return 0;
+}
+
+static int _lsqlite_stmt_col(lua_State * L,sqlite3_stmt * stmt,int q_index){
+    int type=sqlite3_column_type(stmt,q_index);
+    switch (type) {
+        case SQLITE_INTEGER:lua_pushinteger(L,sqlite3_column_int(stmt,q_index));break;
+        case SQLITE_TEXT:lua_pushlstring(L,(const char *)sqlite3_column_text(stmt,q_index),sqlite3_column_bytes(stmt,q_index));break;
+        case SQLITE_NULL:lua_pushnil(L);break;
+        case SQLITE_FLOAT:lua_pushnumber(L,sqlite3_column_double(stmt,q_index));break;
+        case SQLITE_BLOB:lua_pushlstring(L,sqlite3_column_blob(stmt,q_index),sqlite3_column_bytes(stmt,q_index));break;
+        default:lua_pushnil(L);
+    }
+    return 1;
+}
+
+/*static int lsqlite_stmt_col(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    return _lsqlite_stmt_col(L,*pstmt,lua_tointeger(L,2));
+}*/
+
+
+static int _lsqlite_stmt_row(lua_State * L,sqlite3_stmt * stmt){
+    int var=sqlite3_step(stmt);
+    if (var==SQLITE_ROW){
+        int count=sqlite3_column_count(stmt);
+        int i,j;
+        const char * name;
+        lua_createtable(L, count, count);
+        for(i=0;i<count;){
+            _lsqlite_stmt_col(L,stmt,i);
+            name = sqlite3_column_name(stmt, i );
+            if (name){
+                lua_pushvalue(L, -1);
+                lua_setfield(L,-3,name);
+            }
+            lua_rawseti(L,-2,++i);
+        }
+        return 1;
+    }
+    if (var==SQLITE_DONE){
+        var=sqlite3_reset(stmt);
+    }
+    Q_CHECK_STMT_OK(L,stmt,var);
+    return 0;
+}
+
+static int lsqlite_stmt_row(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    return _lsqlite_stmt_row(L,*pstmt);
+}
+
+/*static int _lsqlite_stmt_rows(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);//lua_upvalueindex(1));
+    return _lsqlite_stmt_row(L,*pstmt);
+}*/
+
+
+static int lsqlite_stmt_rows(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    int var=lua_gettop(L);
+    if (var>1){
+        luaL_checktype(L, 2,LUA_TFUNCTION);
+        if (var>2) lua_settop(L, 2);
+next:
+        var=_lsqlite_stmt_row(L,*pstmt);
+        if (var==1){
+            lua_call(L,1,LUA_MULTRET);
+            var=lua_gettop(L);
+            if (var>1)
+                return var-1;
+            goto next;
+        }
+        return 0;
+    }
+    if (var>1) lua_settop(L, 1);
+    lua_pushcfunction(L, lsqlite_stmt_row);
+    lua_insert(L,-2);
+    //lua_pushcclosure(L, _lsqlite_stmt_rows,1);
+    return 2;
+}
+
+//static int lsqlite_stmt_db(lua_State * L){
+//    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+//    sqlite3_next_stmt(sqlite3 *pDb, sqlite3_stmt *pStmt)
+//}
+
+
+
+
+static const struct luaL_Reg lsqlite_stmt_mt[] = {
+    {"bind_all",lsqlite_stmt_bind_all},
+    {"bind",lsqlite_stmt_bind},
+    //{"col",lsqlite_stmt_col},
+    {"row",lsqlite_stmt_row},
+    {"rows",lsqlite_stmt_rows},
+    {"done",lsqlite_stmt_done},
+    {"finalize",lsqlite_stmt_finalize},
+    {"finalized",lsqlite_stmt_finalized},    
+    {"__gc",lsqlite_stmt_gc},
+    {NULL,NULL}
+};
+
+
+static const struct luaL_Reg lsqlite_db_mt[] = {
+    {"exec",lsqlite_db_exec},
+    {"prepare",lsqlite_db_prepare},
+    {"close",lsqlite_db_close},
+    {"closed",lsqlite_db_closed},
+    {"changes",lsqlite_db_changes},
+    {"autocommit",lsqlite_autocommit},
+    {"id",lsqlite_db_id},
+    {"__gc",lsqlite_db_gc},
+    {NULL,NULL}
+};
+
+
+
+static const struct luaL_Reg lsqlite_fn[] = {
+    {"open",lsqlite_open},
+    {"version",lsqlite_version},
+    {NULL,NULL}
+};
+
+
+extern int luaopen_lsqlite(lua_State * L){
+
+    /*luaL_newmetatable(L,LSQLITE_MT);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+    luaL_setfuncs(L,lsqlite_db_mt, 0);
+    lua_pop(L, 1);*/
+    
+    {
+
+        lua_newtable(L);//lsqlite_db_mt
+        {               
+            lua_newtable(L);//lsqlite_stmt_mt
+            lua_pushvalue(L, -1);
+            lua_setfield(L, -2, "__index");
+            {
+                lua_newtable(L);
+                lua_pushvalue(L, -1);
+                lua_setfield(L, -2, "__index");
+                luaL_setfuncs(L,lsqlite_stmt_mt, 0);
+            }
+            luaL_setfuncs(L,lsqlite_db_mt, 1);//up=lsqlite_stmt_mt
+            //===============================================================
+
+
+        }
+        luaL_setfuncs(L,lsqlite_fn, 1);//up=lsqlite_db_mt
+    }
+    
+    sqlite3_initialize();
+    return 1;
+
+
+}
+
