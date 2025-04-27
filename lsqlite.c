@@ -87,7 +87,6 @@ static int lsqlite_db_closed(lua_State * L){
 
 
 int lsqlite_autocommit(lua_State * L){
-    //lua_pushstring(L,sqlite3_libversion());
     sqlite3 ** pdb=lua_touserdata(L, 1);
     lua_pushboolean(L,sqlite3_get_autocommit(*pdb)==1);
     return 1;
