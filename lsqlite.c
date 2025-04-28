@@ -1,5 +1,6 @@
 
 
+#include "luaconf.h"
 #include "sqlite3.h"
 #include <lua.h>
 #include <lauxlib.h> 
@@ -421,7 +422,7 @@ static const struct luaL_Reg lsqlite_fn[] = {
 
 
 
-extern int luaopen_lsqlite(lua_State * L){
+LUA_API int luaopen_lsqlite(lua_State * L){
 
     //lsqlite_stmt_mt
     lua_newtable(L);
