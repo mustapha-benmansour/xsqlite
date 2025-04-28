@@ -367,7 +367,6 @@ static int _lsqlite_stmt_row(lua_State * L,sqlite3_stmt * stmt){
             }
             lua_rawseti(L,-2,++i);
         }
-        Q_CHECK_STMT_OK(L,stmt,sqlite3_reset(stmt));
         return 1;
     }
     if (var==SQLITE_DONE){

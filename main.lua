@@ -27,10 +27,6 @@ do
     stmt:finalize()
     stmt =db:prepare(string.format('insert into _%s (code,name,data,price) values(:code,:name,:data,:price)',time))
     print('stmt type',Q.type(stmt))
-    --stmt:finalize()
-    db:close()
-    print('stmt type',Q.type(stmt))
-    do return end
     local binary_data = string.char(0x00, 0x01, 0x02, 0x03, 0x04)
     --local bind={data={binary_data},price={}}
     for i = 1, N do
@@ -54,6 +50,9 @@ do
     stmt:finalize()
     print('stmt type',Q.type(stmt))
     print(string.format('insert took %.3fs',(os.clock()-os_clock)))
+    local C=0
+    ::again::
+    C=C+1
     os_clock=os.clock()
     stmt=db:prepare(string.format('select * from _%s',time))
     print('stmt type',Q.type(stmt))
@@ -64,6 +63,11 @@ do
         end
     end   
     stmt:finalize()
+    db:close()
     print('stmt type',Q.type(stmt))
     print(string.format('select took %.3fs',(os.clock()-os_clock)))
+    if C==1 then
+        db=Q.open('test.db','readonly')
+        goto again
+    end
 end
