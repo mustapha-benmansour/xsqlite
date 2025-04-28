@@ -83,10 +83,8 @@ local M_stmt={}
 
 ---@alias lsqlite.stmt-bind-key string|integer
 ---@alias lsqlite.stmt-bind-val nil|string|integer|boolean|{[1]:number}|{[1]:string} 
----@alias lsqlite.stmt-bind-map {[lsqlite.stmt-bind-key]:lsqlite.stmt-bind-val}
----@alias lsqlite.stmt-row-key string|integer
----@alias lsqlite.stmt-row-val nil|string|integer|boolean|number
----@alias lsqlite.stmt-row-map {[lsqlite.stmt-row-key]:lsqlite.stmt-row-val}
+---@alias lsqlite.stmt-bind-obj {[lsqlite.stmt-bind-key]:lsqlite.stmt-bind-val}
+---@alias lsqlite.stmt-row {[string|integer]:nil|string|integer|boolean|number}
 
 function M_stmt:finalize() end
 
@@ -98,16 +96,16 @@ function M_stmt:is_readonly() end
 function M_stmt:bind(key,value) end
 
 
----@param map lsqlite.stmt-bind-map
-function M_stmt:bind_all(map) end
+---@param obj lsqlite.stmt-bind-obj
+function M_stmt:bind_all(obj) end
 
 
 function M_stmt:done() end
 
----@return lsqlite.stmt-row-map
+---@return lsqlite.stmt-row
 function M_stmt:row() end
 
----@return fun():lsqlite.stmt-row-map
+---@return fun():lsqlite.stmt-row
 function M_stmt:rows() end
 
 
