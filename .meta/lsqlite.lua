@@ -13,10 +13,16 @@ function M.version() end
 ---@return 'database'|'closed database'|'statement'|'finalized statement'|nil
 function M.type(obj) end
 
+
+---@alias lsqlite-open-flag 
+---|'readonly'
+---|>'readwrite'
+---|>'create'
+
 ---@param file string
----@param mode integer?
+---@param ... lsqlite-open-flag? # mode
 ---@return lsqlite.db*
-function M.open(file,mode) end
+function M.open(file,...) end
 
 
 
