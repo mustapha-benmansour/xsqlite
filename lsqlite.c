@@ -2,7 +2,7 @@
 
 #include "sqlite3.h"
 #include <lua.h>
-#include <lauxlib.h>
+#include <lauxlib.h> 
 #include <sqlite3.h>
 #include <stdio.h>
 #include <string.h>
