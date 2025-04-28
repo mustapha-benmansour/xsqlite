@@ -84,7 +84,7 @@ local M_stmt={}
 ---@alias lsqlite.stmt-bind-key string|integer
 ---@alias lsqlite.stmt-bind-val nil|string|integer|boolean|{[1]:number}|{[1]:string} 
 ---@alias lsqlite.stmt-bind-obj {[lsqlite.stmt-bind-key]:lsqlite.stmt-bind-val}
----@alias lsqlite.stmt-row {[string|integer]:nil|string|integer|boolean|number}
+---@alias lsqlite.stmt-row {[string|integer]:nil|string|integer|number}
 
 function M_stmt:finalize() end
 
