@@ -367,12 +367,14 @@ static int _lsqlite_stmt_row(lua_State * L,sqlite3_stmt * stmt){
             }
             lua_rawseti(L,-2,++i);
         }
+        Q_CHECK_STMT_OK(L,stmt,sqlite3_reset(stmt));
         return 1;
     }
     if (var==SQLITE_DONE){
         var=sqlite3_reset(stmt);
+    }else{
+        Q_CHECK_STMT_OK(L,stmt,var);
     }
-    Q_CHECK_STMT_OK(L,stmt,var);
     return 0;
 }
 
@@ -416,6 +418,7 @@ static const struct luaL_Reg lsqlite_db_mt[] = {
     {"close",lsqlite_db_close},
     {"is_readonly",lsqlite_db_is_readonly},
     {"name",lsqlite_db_name},
+    {"filename",lsqlite_db_filename},
     {"changes",lsqlite_db_changes},
     {"is_autocommit",lsqlite_is_autocommit},
     {"id",lsqlite_db_id},
