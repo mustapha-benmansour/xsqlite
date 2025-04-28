@@ -81,29 +81,33 @@ function M_db:prepare(query) end
 ---@class lsqlite.stmt*
 local M_stmt={}
 
+---@alias lsqlite.stmt-bind-key string|integer
 ---@alias lsqlite.stmt-bind-val nil|string|integer|boolean|{[1]:number}|{[1]:string} 
+---@alias lsqlite.stmt-bind-map {[lsqlite.stmt-bind-key]:lsqlite.stmt-bind-val}
+---@alias lsqlite.stmt-row-key string|integer
 ---@alias lsqlite.stmt-row-val nil|string|integer|boolean|number
+---@alias lsqlite.stmt-row-map {[lsqlite.stmt-row-key]:lsqlite.stmt-row-val}
 
 function M_stmt:finalize() end
 
 ---@return boolean
 function M_stmt:is_readonly() end
 
----@param key string|integer 
+---@param key lsqlite.stmt-bind-key
 ---@param value lsqlite.stmt-bind-val
 function M_stmt:bind(key,value) end
 
 
----@param values {[integer]:lsqlite.stmt-bind-val,[string]:lsqlite.stmt-bind-val}
-function M_stmt:bind_all(values) end
+---@param map lsqlite.stmt-bind-map
+function M_stmt:bind_all(map) end
 
 
 function M_stmt:done() end
 
----@return {[integer]:lsqlite.stmt-row-val,[string]:lsqlite.stmt-row-val}
+---@return lsqlite.stmt-row-map
 function M_stmt:row() end
 
----@return fun():{[integer]:lsqlite.stmt-row-val,[string]:lsqlite.stmt-row-val}
+---@return fun():lsqlite.stmt-row-map
 function M_stmt:rows() end
 
 
