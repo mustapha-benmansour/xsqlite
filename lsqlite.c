@@ -330,10 +330,13 @@ static int lsqlite_stmt_done(lua_State * L){
     sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
     CHECK_STMT(*pstmt);
     int var=sqlite3_step(*pstmt);
-    if (var==SQLITE_DONE || var==SQLITE_ROW){
+    if (var==SQLITE_DONE){
         var=sqlite3_reset(*pstmt);
-    }        
-    Q_CHECK_STMT_OK(L,*pstmt,var);
+    }else if (var==SQLITE_ROW){
+        return luaL_error(L, "done result expected got row");
+    }else{
+        Q_CHECK_STMT_OK(L,*pstmt,var);
+    } 
     return 0;
 }
 
