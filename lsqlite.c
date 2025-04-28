@@ -260,7 +260,7 @@ static int _lsqlite_stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int 
     int var;
     switch(lua_type(L,l_value_idex)){
         case LUA_TNIL:var= sqlite3_bind_null(stmt,q_index);break;
-        case LUA_TNUMBER:var= sqlite3_bind_int(stmt,q_index,lua_tointeger(L,l_value_idex));break;
+        case LUA_TNUMBER:var= sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));break;
         case LUA_TSTRING:{
             size_t sz;
             const char * value=lua_tolstring(L,l_value_idex,&sz);
@@ -340,7 +340,7 @@ static int lsqlite_stmt_done(lua_State * L){
 static int _lsqlite_stmt_col(lua_State * L,sqlite3_stmt * stmt,int q_index){
     int type=sqlite3_column_type(stmt,q_index);
     switch (type) {
-        case SQLITE_INTEGER:lua_pushinteger(L,sqlite3_column_int(stmt,q_index));break;
+        case SQLITE_INTEGER:lua_pushinteger(L,sqlite3_column_int64(stmt,q_index));break;
         case SQLITE_TEXT:lua_pushlstring(L,(const char *)sqlite3_column_text(stmt,q_index),sqlite3_column_bytes(stmt,q_index));break;
         case SQLITE_NULL:lua_pushnil(L);break;
         case SQLITE_FLOAT:lua_pushnumber(L,sqlite3_column_double(stmt,q_index));break;
