@@ -22,9 +22,15 @@ do
     --PRAGMA ignore_check_constraints = ON;
     --PRAGMA temp_store = MEMORY;
     ]]
-    db:prepare(string.format('create table if not exists _%s (id integer primary key autoincrement,code integer,name text,data blob,price real)',time)):done()
-    local stmt =db:prepare(string.format('insert into _%s (code,name,data,price) values(:code,:name,:data,:price)',time))
+    local stmt=db:prepare(string.format('create table if not exists _%s (id integer primary key autoincrement,code integer,name text,data blob,price real)',time))
+    stmt:done()
+    stmt:finalize()
+    stmt =db:prepare(string.format('insert into _%s (code,name,data,price) values(:code,:name,:data,:price)',time))
     print('stmt type',Q.type(stmt))
+    --stmt:finalize()
+    db:close()
+    print('stmt type',Q.type(stmt))
+    do return end
     local binary_data = string.char(0x00, 0x01, 0x02, 0x03, 0x04)
     --local bind={data={binary_data},price={}}
     for i = 1, N do
@@ -49,7 +55,7 @@ do
     print('stmt type',Q.type(stmt))
     print(string.format('insert took %.3fs',(os.clock()-os_clock)))
     os_clock=os.clock()
-    local stmt=db:prepare(string.format('select * from _%s',time))
+    stmt=db:prepare(string.format('select * from _%s',time))
     print('stmt type',Q.type(stmt))
     for row in stmt:rows() do
         local id,code,name,data,price=unpack(row)
