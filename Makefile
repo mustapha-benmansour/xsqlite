@@ -26,5 +26,8 @@ $(OUT): $(SRCS)
 test: $(OUT)
 	luajit main.lua
 
+install:
+
 clean:
 	@rm -fv $(APP)
+
