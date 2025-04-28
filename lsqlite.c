@@ -64,12 +64,32 @@ static int lsqlite_type(lua_State * L){
 
 
     
+#define SQLITE_OPEN_READONLY         0x00000001  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_READWRITE        0x00000002  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_CREATE           0x00000004  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_URI              0x00000040  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_MEMORY           0x00000080  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_NOMUTEX          0x00008000  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_FULLMUTEX        0x00010000  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_SHAREDCACHE      0x00020000  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_PRIVATECACHE     0x00040000  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_NOFOLLOW         0x01000000  /* Ok for sqlite3_open_v2() */
 
 
 static int lsqlite_open(lua_State * L){
     const char * db_name=luaL_checkstring(L, 1);
     sqlite3 * db;
-    int flags=luaL_optint(L, 2, SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE);
+    static const int mode[] = {SQLITE_OPEN_READONLY,SQLITE_OPEN_READWRITE,SQLITE_OPEN_CREATE};
+    static const char *const modenames[] = {"readonly", "readwrite", "create", NULL};
+    int flags=0;
+    int top=lua_gettop(L);
+    if (top>1){
+        for (int i=2; i<=top; i++) {
+            flags|=mode[luaL_checkoption(L, i, NULL, modenames)];
+        }
+    }else{
+        flags=SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    }
     int ret=sqlite3_open_v2(db_name, &db, flags, NULL);
     Q_CHECK_OK(L,db,ret);
     sqlite3 ** pdb =  lua_newuserdata(L,sizeof(sqlite3*));
