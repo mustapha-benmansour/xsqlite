@@ -64,16 +64,6 @@ static int lsqlite_type(lua_State * L){
 
 
     
-#define SQLITE_OPEN_READONLY         0x00000001  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_READWRITE        0x00000002  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_CREATE           0x00000004  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_URI              0x00000040  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_MEMORY           0x00000080  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_NOMUTEX          0x00008000  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_FULLMUTEX        0x00010000  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_SHAREDCACHE      0x00020000  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_PRIVATECACHE     0x00040000  /* Ok for sqlite3_open_v2() */
-#define SQLITE_OPEN_NOFOLLOW         0x01000000  /* Ok for sqlite3_open_v2() */
 
 
 static int lsqlite_open(lua_State * L){
