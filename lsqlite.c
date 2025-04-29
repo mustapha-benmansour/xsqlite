@@ -306,9 +306,9 @@ static void lsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int
         case LUA_TNUMBER:{
                 if (q_alt){
                     if (lua_toboolean(L, q_alt))
-                        rc=sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));
-                    else
                         rc=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,l_value_idex));
+                    else
+                        rc=sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));
                 }else{
                     lua_Number n = lua_tonumber(L, q_index);
                     lua_Integer i = lua_tointeger(L, q_index);

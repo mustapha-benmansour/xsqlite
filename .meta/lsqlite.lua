@@ -95,7 +95,7 @@ function M_stmt:is_readonly() end
 
 ---@param key lsqlite.stmt-bind-key
 ---@param value lsqlite.stmt-bind-val
----@param alt true? # tell the function to use the correspondant alternative type of value's type (true for string to use blob)(true for number to use integer)
+---@param alt true? # tell the function to use the correspondant alternative type of value's type (true for string to use blob)(true for number to use double (default is integer))
 ---@overload fun(self:lsqlite.stmt*,obj:lsqlite.stmt-bind-obj)
 function M_stmt:bind(key,value,alt) end
 
