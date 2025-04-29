@@ -23,10 +23,8 @@ do
     --PRAGMA temp_store = MEMORY;
     ]]
     local stmt=db:prepare(string.format('create table if not exists _%s (id integer primary key autoincrement,code integer,name text,data blob,price real)',time))
-    
-    for key, value in pairs(stmt:next({})) do
-        
-    end
+    stmt:next()
+
     stmt:finalize()
     stmt =db:prepare(string.format('insert into _%s (code,name,data,price) values(:code,:name,:data,:price)',time))
     print('stmt type',Q.type(stmt))
