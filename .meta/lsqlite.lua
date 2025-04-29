@@ -100,9 +100,9 @@ function M_stmt:is_readonly() end
 function M_stmt:bind(key,value,alt) end
 
 
-
----@param row table? # optional table to fill with row data if available.
----@return boolean # `true` if expected result is obtained, `false` if no more rows (only when `row` is given).
+---@generic T:table
+---@param row T? # optional table to fill with row data if available.
+---@return (true|T)? # `true` if expected result is obtained, `false` if no more rows (only when `row` is given).
 function M_stmt:next(row) end
 
 
