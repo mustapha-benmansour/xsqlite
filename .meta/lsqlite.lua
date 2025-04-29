@@ -101,9 +101,9 @@ function M_stmt:bind(key,value,alt) end
 
 
 
----@param t table?
----@return boolean 
-function M_stmt:next(t) end
+---@param row table? # optional table to fill with row data if available.
+---@return boolean # `true` if expected result is obtained, `false` if no more rows (only when `row` is given).
+function M_stmt:next(row) end
 
 
 function M_stmt:reset() end
