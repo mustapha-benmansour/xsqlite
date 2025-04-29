@@ -93,20 +93,18 @@ function M_stmt:is_readonly() end
 
 ---@param key lsqlite.stmt-bind-key
 ---@param value lsqlite.stmt-bind-val
+---@overload fun(self:lsqlite.stmt*,obj:lsqlite.stmt-bind-obj)
 function M_stmt:bind(key,value) end
 
 
----@param obj lsqlite.stmt-bind-obj
-function M_stmt:bind_all(obj) end
+--- return row table for (select) or true for (insert|delete|update) # this func doesnt reset stmt
+---@return true|lsqlite.stmt-row
+function M_stmt:next() end
 
 
-function M_stmt:done() end
+function M_stmt:reset() end
 
----@return lsqlite.stmt-row
-function M_stmt:row() end
 
----@return fun():lsqlite.stmt-row
-function M_stmt:rows() end
-
+function M_stmt:clear() end
 
 return M

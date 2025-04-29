@@ -11,8 +11,8 @@
 
 
 
-#define Q_DB_ERROR(L,db,ret) \
-        lua_pushfstring((L),"E%d %s, ",sqlite3_errcode((db)),sqlite3_errstr((ret)));\
+#define Q_DB_ERROR(L,db,rc) \
+        lua_pushfstring((L),"E%d EE%d %s, ",rc,sqlite3_extended_errcode((db)),sqlite3_errstr((ret)));\
         lua_pushstring((L), sqlite3_errmsg((db)));\
         lua_concat((L), 2); \
         return lua_error((L));
@@ -34,7 +34,34 @@
 
 
 
+//================= shared
+
+static void lsqlite__ferr(lua_State * L,sqlite3 * db,int rc){
+    if (db){
+        lua_pushfstring(L,"E:%d,EE:%d,O:%d,%s,",rc,sqlite3_extended_errcode(db),sqlite3_error_offset(db),sqlite3_errstr(rc));
+        lua_pushstring(L, sqlite3_errmsg(db));
+        lua_concat(L, 2);
+    }else
+        lua_pushfstring((L),"E%d:%s",(rc),sqlite3_errstr((rc)));
+} 
+
+#define lsqlite__check_rc(L,db,rc) do {\
+        if ((rc)!=SQLITE_OK) {\
+            lsqlite__ferr((L),(db),(rc));\
+            lua_error((L));\
+        }\
+    } while(0)
+#define lsqlite__stmt_check_rc(L,stmt,rc) do {\
+        if ((rc)!=SQLITE_OK) {\
+            sqlite3 * db=sqlite3_db_handle((stmt));\
+            lsqlite__ferr((L),db,(rc));\
+            lua_error((L));\
+        }\
+    } while(0)
+
 //================= SQLITE
+
+
 
 static int lsqlite_version(lua_State * L){
     lua_pushstring(L,sqlite3_libversion());
@@ -63,29 +90,32 @@ static int lsqlite_type(lua_State * L){
 }
 
 
-    
 
 
 static int lsqlite_open(lua_State * L){
     const char * db_name=luaL_checkstring(L, 1);
-    sqlite3 * db;
-    static const int mode[] = {SQLITE_OPEN_READONLY,SQLITE_OPEN_READWRITE,SQLITE_OPEN_CREATE};
-    static const char *const modenames[] = {"readonly", "readwrite", "create", NULL};
+    sqlite3 * db=NULL;
     int flags=0;
     int top=lua_gettop(L);
     if (top>1){
+        static const int mode[] = {SQLITE_OPEN_READONLY,SQLITE_OPEN_READWRITE,SQLITE_OPEN_CREATE};
+        static const char *const modenames[] = {"readonly", "readwrite", "create", NULL};
         for (int i=2; i<=top; i++) {
             flags|=mode[luaL_checkoption(L, i, NULL, modenames)];
         }
     }else{
         flags=SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
     }
-    int ret=sqlite3_open_v2(db_name, &db, flags, NULL);
-    Q_CHECK_OK(L,db,ret);
+    int rc=sqlite3_open_v2(db_name, &db, flags, NULL);
+    if (rc!=SQLITE_OK){
+        lsqlite__ferr(L, db, rc);
+        if (db) sqlite3_close(db);
+        return lua_error(L);
+    }
     sqlite3 ** pdb =  lua_newuserdata(L,sizeof(sqlite3*));
     if (pdb==NULL){
-        sqlite3_close_v2(db);
-        return luaL_error(L,"ENOMEM");
+        sqlite3_close(db);
+        return luaL_error(L,"no enough memory");
     }
     *pdb=db;
     lua_pushvalue(L, lua_upvalueindex(1));
@@ -98,6 +128,13 @@ static int lsqlite_open(lua_State * L){
 
 
 //================= DB
+
+static inline sqlite3 * lsqlite__todb(lua_State * L){
+    sqlite3 ** pdb=lua_touserdata(L, 1);
+    if (!(*pdb)) luaL_error(L, "attempt to use a closed database");
+    return (*pdb);
+}
+
 static int lsqlite_db_gc(lua_State * L){
     sqlite3 ** pdb=lua_touserdata(L, 1);
     if ((*pdb)!=NULL){
@@ -111,27 +148,27 @@ static int lsqlite_db_close(lua_State * L){
     sqlite3 ** pdb=lua_touserdata(L, 1);
     if ((*pdb)==NULL)
         return luaL_error(L, "database is already closed");
-    Q_CHECK_OK(L,*pdb,sqlite3_close(*pdb));
+    int rc=sqlite3_close(*pdb);
+    lsqlite__check_rc(L,*pdb,rc);
     *pdb=NULL;
     return 0;
 }
 
+
 static int lsqlite_db_is_readonly(lua_State * L){
-    sqlite3 ** pdb=lua_touserdata(L, 1);
-    CHECK_DB(*pdb);
+    sqlite3 * db=lsqlite__todb(L);
     const char * name=luaL_optstring(L, 2,"main");
-    int ret=sqlite3_db_readonly(*pdb,name);
-    if (ret==-1)
+    int rc=sqlite3_db_readonly(db,name);
+    if (rc==-1)
         return luaL_error(L,"no attached database named '%s'",name);
-    lua_pushboolean(L, ret==1);
+    lua_pushboolean(L, rc==1);
     return 1;
 }
 
 static int lsqlite_db_name(lua_State * L){
-    sqlite3 ** pdb=lua_touserdata(L, 1);
-    CHECK_DB(*pdb);
+    sqlite3 * db=lsqlite__todb(L);
     int i=luaL_checkint(L, 2);
-    const char * name = sqlite3_db_name(*pdb, i);
+    const char * name = sqlite3_db_name(db, i);
     if (!name) 
         return luaL_error(L, "out of range");
     lua_pushstring(L, name);
@@ -139,10 +176,9 @@ static int lsqlite_db_name(lua_State * L){
 }
 
 static int lsqlite_db_filename(lua_State * L){
-    sqlite3 ** pdb=lua_touserdata(L, 1);
-    CHECK_DB(*pdb);
+    sqlite3 * db=lsqlite__todb(L);
     const char * name = luaL_optstring(L, 2, "main");
-    const char * fname = sqlite3_db_filename(*pdb,name);
+    const char * fname = sqlite3_db_filename(db,name);
     if (!fname) 
         return luaL_error(L,"no attached database named '%s'",name);
     lua_pushstring(L, fname);
@@ -154,52 +190,60 @@ static int lsqlite_db_filename(lua_State * L){
 
 
 static int lsqlite_is_autocommit(lua_State * L){
-    sqlite3 ** pdb=lua_touserdata(L, 1);
-    CHECK_DB(*pdb);
-    lua_pushboolean(L,sqlite3_get_autocommit(*pdb)==1);
+    sqlite3 * db=lsqlite__todb(L);
+    lua_pushboolean(L,sqlite3_get_autocommit(db)==1);
     return 1;
 }
 
+static int lsqlite_db_id(lua_State * L){
+    sqlite3 * db=lsqlite__todb(L);
+    int id=sqlite3_last_insert_rowid(db);
+    if (id==0) 
+        return 0;
+    lua_pushinteger(L,id);
+    return 1;
+}
+
+
 static int lsqlite_db_changes(lua_State * L){
-    sqlite3 ** pdb = lua_touserdata(L,1);
-    CHECK_DB(*pdb);
-    lua_pushinteger(L,sqlite3_changes(*pdb));
+    sqlite3 * db=lsqlite__todb(L);
+    lua_pushinteger(L,sqlite3_changes(db));
     return 1;
 }
 
 
 static int lsqlite_db_exec(lua_State * L){
-    sqlite3 ** pdb = lua_touserdata(L,1);
-    CHECK_DB(*pdb);
+    sqlite3 * db=lsqlite__todb(L);
     const char *sql = luaL_checkstring(L, 2);
-    Q_CHECK_OK(L,*pdb,sqlite3_exec(*pdb,sql,NULL,NULL,NULL));
+    int rc=sqlite3_exec(db,sql,NULL,NULL,NULL);
+    lsqlite__check_rc(L,db,rc);
     return 0;
 }
 
 
 
-
-
-
-
 static int lsqlite_db_prepare(lua_State * L){
-    sqlite3 ** pdb = lua_touserdata(L,1);
-    CHECK_DB(*pdb);
+    sqlite3 * db=lsqlite__todb(L);
     size_t sql_len;
     const char *sql = luaL_checklstring(L, 2,&sql_len);
     sqlite3_stmt * stmt;
-    int ret,is_persistant;
-    is_persistant=lua_gettop(L)>3?lua_toboolean(L, 3):0;
-    if (is_persistant){
-        ret=sqlite3_prepare_v3(*pdb, sql,sql_len,SQLITE_PREPARE_PERSISTENT,&stmt,NULL);
-    }else{
-        ret=sqlite3_prepare_v2(*pdb, sql,sql_len,&stmt,NULL);
-    }
-    Q_CHECK_OK(L,*pdb,ret);
+    int rc,top;
+    top=lua_gettop(L);
+    if (top>2){
+        int flags=0;
+        static const int mode[] = {SQLITE_PREPARE_PERSISTENT,SQLITE_PREPARE_NORMALIZE,SQLITE_PREPARE_NO_VTAB};
+        static const char *const modenames[] = {"persistent", "normalize", "no_vtab", NULL};
+        for (int i=3; i<=top; i++) {
+            flags|=mode[luaL_checkoption(L, i, NULL, modenames)];
+        }
+        rc=sqlite3_prepare_v3(db, sql,sql_len,flags,&stmt,NULL);
+    }else
+        rc=sqlite3_prepare_v2(db, sql,sql_len,&stmt,NULL);
+    lsqlite__check_rc(L,db,rc);
     sqlite3_stmt ** pstmt =  lua_newuserdata(L,sizeof(sqlite3_stmt*));
     if (pstmt==NULL){
         sqlite3_finalize(stmt);
-        return luaL_error(L,"ENOMEM");
+        return luaL_error(L,"no enough memory");
     }
     *pstmt=stmt;
     lua_pushvalue(L, lua_upvalueindex(1));
@@ -211,21 +255,19 @@ static int lsqlite_db_prepare(lua_State * L){
 
 
 
-static int lsqlite_db_id(lua_State * L){
-    sqlite3 ** pdb = lua_touserdata(L,1);
-    CHECK_DB(*pdb);
-    int var=sqlite3_last_insert_rowid(*pdb);
-    if (var==0) 
-        return 0;
-    lua_pushinteger(L,var);
-    return 1;
-}
 
 
 
 
 
 //================= STMT
+
+static inline sqlite3_stmt * lsqlite__tostmt(lua_State * L){
+    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
+    if (!(*pstmt)) luaL_error(L, "attempt to use a finalized statement");
+    return (*pstmt);
+}
+
 
 static int lsqlite_stmt_gc(lua_State * L){
     sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
@@ -239,77 +281,68 @@ static int lsqlite_stmt_gc(lua_State * L){
 
 static int lsqlite_stmt_finalize(lua_State * L){
     sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
-    CHECK_STMT(*pstmt);
     if ((*pstmt)==NULL)
         return luaL_error(L,"already finalized");
-    Q_CHECK_STMT_OK(L,*pstmt, sqlite3_finalize(*pstmt));
+    sqlite3 * db=sqlite3_db_handle(*pstmt);
+    int rc=sqlite3_finalize(*pstmt);
     *pstmt=NULL;
+    lsqlite__check_rc(L,db,rc);
+    
     return 0;
 }
 
 static int lsqlite_stmt_is_readonly(lua_State * L){
-    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
-    CHECK_STMT(*pstmt);
-    lua_pushboolean(L, sqlite3_stmt_readonly(*pstmt));
+    sqlite3_stmt * stmt=lsqlite__tostmt(L);
+    lua_pushboolean(L, sqlite3_stmt_readonly(stmt));
     return 1;
 }
 
 
 
-static int _lsqlite_stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int l_value_idex){
-    int var;
+static void lsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int l_value_idex,int q_extand_index){
+    int rc;
     switch(lua_type(L,l_value_idex)){
-        case LUA_TNIL:var= sqlite3_bind_null(stmt,q_index);break;
-        case LUA_TNUMBER:var= sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));break;
+        case LUA_TNIL:rc= sqlite3_bind_null(stmt,q_index);break;
+        case LUA_TNUMBER:{
+                if (q_extand_index && lua_type(L, q_extand_index)==LUA_TBOOLEAN){
+                    if (lua_toboolean(L, q_extand_index))
+                        rc=sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));
+                    else
+                        rc=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,l_value_idex));
+                }else{
+                    lua_Number n = lua_tonumber(L, q_index);
+                    lua_Integer i = lua_tointeger(L, q_index);
+                    if (i == n)
+                        rc=sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));
+                    else
+                        rc=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,l_value_idex));
+                }
+            }
+            break;
         case LUA_TSTRING:{
-            size_t sz;
-            const char * value=lua_tolstring(L,l_value_idex,&sz);
-            var= sqlite3_bind_text(stmt,q_index,value,sz,SQLITE_TRANSIENT);
-        }
-        break;
-        case LUA_TBOOLEAN:var= sqlite3_bind_int(stmt,q_index,lua_toboolean(L,l_value_idex));break;
-        case LUA_TTABLE:{
-            lua_rawgeti(L, l_value_idex,1);
-            var=lua_type(L,-1);
-            if (var==LUA_TNUMBER){
-                var=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,-1));
-                break;
-            }
-            if (var==LUA_TSTRING){
                 size_t sz;
-                const char * value=lua_tolstring(L,-1,&sz);
-                var=sqlite3_bind_blob(stmt,q_index,value,sz,SQLITE_TRANSIENT);
-                break;
+                const char * value=lua_tolstring(L,l_value_idex,&sz);
+                if (q_extand_index && lua_type(L, q_extand_index)==LUA_TBOOLEAN){
+                    if (lua_toboolean(L, q_extand_index))
+                        rc=sqlite3_bind_blob(stmt,q_index,value,sz,SQLITE_TRANSIENT);
+                    else
+                        rc=sqlite3_bind_text(stmt,q_index,value,sz,SQLITE_TRANSIENT);
+                }else
+                    rc=sqlite3_bind_text(stmt,q_index,value,sz,SQLITE_TRANSIENT);
             }
-            luaL_error(L,"invalid type");return 0;
-        }
-        default: luaL_error(L,"invalid type");return 0;
+            break;
+        case LUA_TBOOLEAN:rc= sqlite3_bind_int(stmt,q_index,lua_toboolean(L,l_value_idex));break;
+        default: luaL_error(L,"invalid type");return ;
     } 
-    Q_CHECK_STMT_OK(L,stmt,var);
-    return 0;
+    lsqlite__stmt_check_rc(L, stmt, rc);
 }
 
-static int lsqlite_stmt_bind(lua_State * L){
-    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
-    CHECK_STMT(*pstmt);
-    int q_index;
-    if (lua_type(L,2)==LUA_TSTRING){
-        q_index=sqlite3_bind_parameter_index(*pstmt,lua_tostring(L, 2));
-    }else
-        q_index=lua_tointeger(L,2);
-    _lsqlite_stmt_bind(L,*pstmt,q_index,3);
-    lua_settop(L,1);
-    return 1;
-}
-
-static int lsqlite_stmt_bind_all(lua_State * L){
-    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
-    CHECK_STMT(*pstmt);
-    int count=sqlite3_bind_parameter_count(*pstmt);
+static inline void lsqlite__stmt_bind_all(lua_State * L,sqlite3_stmt * stmt){
+    int count=sqlite3_bind_parameter_count(stmt);
     int i;
     const char * name;
     for(i=1;i<=count;i++){
-        name = sqlite3_bind_parameter_name(*pstmt, i );
+        name = sqlite3_bind_parameter_name(stmt, i );
         if (name && (name[0]=='$' || name[0]=='@' || name[0]==':')){
             lua_pushstring(L, ++name);
             //lua_gettable(L,2);
@@ -319,28 +352,29 @@ static int lsqlite_stmt_bind_all(lua_State * L){
             //lua_gettable(L,2);
             lua_rawget(L, 2);
         }
-        _lsqlite_stmt_bind(L,*pstmt,i,-1);
+        lsqlite__stmt_bind(L,stmt,i,-1,0);
     }
-    lua_settop(L,1);
-    return 1;
 }
 
-
-static int lsqlite_stmt_done(lua_State * L){
-    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
-    CHECK_STMT(*pstmt);
-    int var=sqlite3_step(*pstmt);
-    if (var==SQLITE_DONE){
-        var=sqlite3_reset(*pstmt);
-    }else if (var==SQLITE_ROW){
-        return luaL_error(L, "done result expected got row");
-    }else{
-        Q_CHECK_STMT_OK(L,*pstmt,var);
-    } 
+static int lsqlite_stmt_bind(lua_State * L){
+    sqlite3_stmt * stmt=lsqlite__tostmt(L);
+    int type=lua_type(L,2);
+    if (type==LUA_TTABLE)
+        lsqlite__stmt_bind_all(L,stmt);
+    else{
+        int q_index;
+        if (type==LUA_TSTRING){
+            q_index=sqlite3_bind_parameter_index(stmt,lua_tostring(L, 2));
+        }else
+            q_index=lua_tointeger(L,2);
+        lsqlite__stmt_bind(L,stmt,q_index,3,4);
+    }
     return 0;
 }
 
-static int _lsqlite_stmt_col(lua_State * L,sqlite3_stmt * stmt,int q_index){
+
+
+static int lsqlite__stmt_col(lua_State * L,sqlite3_stmt * stmt,int q_index){
     int type=sqlite3_column_type(stmt,q_index);
     switch (type) {
         case SQLITE_INTEGER:lua_pushinteger(L,sqlite3_column_int64(stmt,q_index));break;
@@ -354,15 +388,16 @@ static int _lsqlite_stmt_col(lua_State * L,sqlite3_stmt * stmt,int q_index){
 }
 
 
-static int _lsqlite_stmt_row(lua_State * L,sqlite3_stmt * stmt){
-    int var=sqlite3_step(stmt);
-    if (var==SQLITE_ROW){
+static int lsqlite_stmt_next(lua_State * L){
+    sqlite3_stmt * stmt=lsqlite__tostmt(L);
+    int rc=sqlite3_step(stmt);
+    if (rc==SQLITE_ROW){
         int count=sqlite3_column_count(stmt);
         int i;
         const char * name;
         lua_createtable(L, count, count);
         for(i=0;i<count;){
-            _lsqlite_stmt_col(L,stmt,i);
+            lsqlite__stmt_col(L,stmt,i);
             name = sqlite3_column_name(stmt, i );
             if (name){
                 lua_pushvalue(L, -1);
@@ -372,41 +407,40 @@ static int _lsqlite_stmt_row(lua_State * L,sqlite3_stmt * stmt){
         }
         return 1;
     }
-    if (var==SQLITE_DONE){
-        var=sqlite3_reset(stmt);
-    }else{
-        Q_CHECK_STMT_OK(L,stmt,var);
+    if (rc==SQLITE_DONE){
+        lua_pushboolean(L, 1);
+        return 1;
     }
-    return 0;
+    lsqlite__stmt_check_rc(L, stmt, rc);
+    return luaL_error(L, "unexpected rc %d",rc);
 }
 
-static int lsqlite_stmt_row(lua_State * L){
-    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
-    CHECK_STMT(*pstmt);
-    return _lsqlite_stmt_row(L,*pstmt);
+static int lsqlite_stmt_reset(lua_State * L){
+    sqlite3_stmt * stmt=lsqlite__tostmt(L);
+    int rc=sqlite3_reset(stmt);
+    lsqlite__stmt_check_rc(L, stmt, rc);
+    lua_settop(L, 1);
+    return 1;
 }
 
-static int lsqlite_stmt_rows(lua_State * L){
-    sqlite3_stmt ** pstmt=lua_touserdata(L, 1);
-    CHECK_STMT(*pstmt);
-    int var=lua_gettop(L);
-    if (var>1) lua_settop(L, 1);
-    lua_pushcfunction(L, lsqlite_stmt_row);
-    lua_insert(L,-2);
-    return 2;
+static int lsqlite_stmt_clear(lua_State * L){
+    sqlite3_stmt * stmt=lsqlite__tostmt(L);
+    int rc=sqlite3_clear_bindings(stmt);
+    lsqlite__stmt_check_rc(L, stmt, rc);
+    lua_settop(L, 1);
+    return 1;
 }
+
 
 
 
 
 
 static const struct luaL_Reg lsqlite_stmt_mt[] = {
-    {"bind_all",lsqlite_stmt_bind_all},
     {"bind",lsqlite_stmt_bind},
-    //{"col",lsqlite_stmt_col},
-    {"row",lsqlite_stmt_row},
-    {"rows",lsqlite_stmt_rows},
-    {"done",lsqlite_stmt_done},
+    {"next",lsqlite_stmt_next},
+    {"reset",lsqlite_stmt_reset},
+    {"clear",lsqlite_stmt_clear},
     {"finalize",lsqlite_stmt_finalize},  
     {"is_readonly",lsqlite_stmt_is_readonly},
     {"__gc",lsqlite_stmt_gc},
@@ -414,9 +448,9 @@ static const struct luaL_Reg lsqlite_stmt_mt[] = {
 };
 
 
+
 static const struct luaL_Reg lsqlite_db_mt[] = {
     {"exec",lsqlite_db_exec},
-    {"prepare",lsqlite_db_prepare},
     {"close",lsqlite_db_close},
     {"is_readonly",lsqlite_db_is_readonly},
     {"name",lsqlite_db_name},
