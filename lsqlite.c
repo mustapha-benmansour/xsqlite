@@ -299,34 +299,22 @@ static int lsqlite_stmt_is_readonly(lua_State * L){
 
 
 
-static void lsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int l_value_idex,int q_extand_index){
+static void lsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int l_value_idex,int q_alt_index){
     int rc;
     switch(lua_type(L,l_value_idex)){
         case LUA_TNIL:rc= sqlite3_bind_null(stmt,q_index);break;
         case LUA_TNUMBER:{
-                if (q_extand_index && lua_type(L, q_extand_index)==LUA_TBOOLEAN){
-                    if (lua_toboolean(L, q_extand_index))
-                        rc=sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));
-                    else
-                        rc=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,l_value_idex));
-                }else{
-                    lua_Number n = lua_tonumber(L, q_index);
-                    lua_Integer i = lua_tointeger(L, q_index);
-                    if (i == n)
-                        rc=sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));
-                    else
-                        rc=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,l_value_idex));
-                }
+                if (q_alt_index && lua_toboolean(L, q_alt_index))
+                    rc=sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));
+                else
+                    rc=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,l_value_idex));
             }
             break;
         case LUA_TSTRING:{
                 size_t sz;
                 const char * value=lua_tolstring(L,l_value_idex,&sz);
-                if (q_extand_index && lua_type(L, q_extand_index)==LUA_TBOOLEAN){
-                    if (lua_toboolean(L, q_extand_index))
-                        rc=sqlite3_bind_blob(stmt,q_index,value,sz,SQLITE_TRANSIENT);
-                    else
-                        rc=sqlite3_bind_text(stmt,q_index,value,sz,SQLITE_TRANSIENT);
+                if (q_alt_index && lua_toboolean(L, q_alt_index)){
+                    rc=sqlite3_bind_blob(stmt,q_index,value,sz,SQLITE_TRANSIENT);
                 }else
                     rc=sqlite3_bind_text(stmt,q_index,value,sz,SQLITE_TRANSIENT);
             }

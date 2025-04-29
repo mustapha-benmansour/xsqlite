@@ -86,6 +86,8 @@ local M_stmt={}
 ---@alias lsqlite.stmt-bind-obj {[lsqlite.stmt-bind-key]:lsqlite.stmt-bind-val}
 ---@alias lsqlite.stmt-row {[string|integer]:nil|string|integer|number}
 
+
+
 function M_stmt:finalize() end
 
 ---@return boolean
@@ -93,8 +95,9 @@ function M_stmt:is_readonly() end
 
 ---@param key lsqlite.stmt-bind-key
 ---@param value lsqlite.stmt-bind-val
+---@param alt true? # tell the function to use the correspondant alternative type of value's type (true for string to use blob)(true for number to use integer)
 ---@overload fun(self:lsqlite.stmt*,obj:lsqlite.stmt-bind-obj)
-function M_stmt:bind(key,value) end
+function M_stmt:bind(key,value,alt) end
 
 
 --- return row table for (select) or true for (insert|delete|update) # this func doesnt reset stmt
