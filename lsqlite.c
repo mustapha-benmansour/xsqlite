@@ -416,6 +416,7 @@ static int lsqlite_stmt_next(lua_State * L){
         lua_pushboolean(L, 1);
         return 1;
     }
+    sqlite3_reset(stmt);
     if (rc==SQLITE_ROW){
         return luaL_error(L, "bad argument #2 (table expected)");
     }
