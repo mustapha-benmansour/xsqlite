@@ -57,8 +57,8 @@ do
     os_clock=os.clock()
     stmt=db:prepare(string.format('select * from _%s',time))
     print('stmt type',Q.type(stmt))
-    local row=stmt:next()
-    while row do
+    local row={}
+    while stmt:next(row) do
         local id,code,name,data,price=unpack(row)
         if id==(N/2) then
             print('ROW ',id,code,name,data,price)

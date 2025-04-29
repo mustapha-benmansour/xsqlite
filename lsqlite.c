@@ -380,10 +380,12 @@ static int lsqlite_stmt_next(lua_State * L){
     sqlite3_stmt * stmt=lsqlite__tostmt(L);
     int rc=sqlite3_step(stmt);
     if (rc==SQLITE_ROW){
+        luaL_checktype(L, 2, LUA_TTABLE);
+        lua_settop(L, 2);
         int count=sqlite3_column_count(stmt);
         int i;
         const char * name;
-        lua_createtable(L, count, count);
+        //lua_createtable(L, count, count);
         for(i=0;i<count;){
             lsqlite__stmt_col(L,stmt,i);
             name = sqlite3_column_name(stmt, i );
@@ -396,7 +398,12 @@ static int lsqlite_stmt_next(lua_State * L){
         return 1;
     }
     if (rc==SQLITE_DONE){
-        lua_pushboolean(L, 1);
+        if (lua_type(L, 2)==LUA_TTABLE){
+            lua_pushboolean(L, 0);
+        }else{
+            luaL_checktype(L, 2, LUA_TNONE);
+            lua_pushboolean(L, 1);
+        }
         return 1;
     }
     lsqlite__stmt_check_rc(L, stmt, rc);

@@ -100,9 +100,10 @@ function M_stmt:is_readonly() end
 function M_stmt:bind(key,value,alt) end
 
 
---- return row table for (select) or true for (insert|delete|update) # this func doesnt reset stmt
----@return true|lsqlite.stmt-row
-function M_stmt:next() end
+
+---@param t table?
+---@return boolean 
+function M_stmt:next(t) end
 
 
 function M_stmt:reset() end
