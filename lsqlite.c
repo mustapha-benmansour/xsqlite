@@ -11,29 +11,6 @@
 
 
 
-#define Q_DB_ERROR(L,db,rc) \
-        lua_pushfstring((L),"E%d EE%d %s, ",rc,sqlite3_extended_errcode((db)),sqlite3_errstr((ret)));\
-        lua_pushstring((L), sqlite3_errmsg((db)));\
-        lua_concat((L), 2); \
-        return lua_error((L));
-
-#define Q_CHECK_OK(L,db,ret) \
-    if ((ret) != SQLITE_OK) { \
-        Q_DB_ERROR((L),(db),(ret))\
-    } 
-
-#define Q_CHECK_STMT_OK(L,stmt,ret) \
-    if ((ret) != SQLITE_OK) { \
-        sqlite3 * db=sqlite3_db_handle(stmt);\
-        Q_DB_ERROR((L),(db),(ret))\
-    } 
-
-
-#define CHECK_DB(db) do { if (!(db)) luaL_error(L, "attempt to use a closed database"); } while(0)
-#define CHECK_STMT(stmt) do { if (!(stmt)) luaL_error(L, "attempt to use a finalized statement"); } while(0)
-
-
-
 //================= shared
 
 static void lsqlite__ferr(lua_State * L,sqlite3 * db,int rc){
