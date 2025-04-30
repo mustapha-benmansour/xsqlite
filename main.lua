@@ -23,7 +23,7 @@ do
     --PRAGMA temp_store = MEMORY;
     ]]
     local stmt=db:prepare(string.format('create table if not exists _%s (id integer primary key autoincrement,code integer,name text,data blob,price real)',time))
-    stmt:next()
+    stmt:step()
 
     stmt:finalize()
     stmt =db:prepare(string.format('insert into _%s (code,name,data,price) values(:code,:name,:data,:price)',time))
@@ -46,7 +46,7 @@ do
         stmt:bind(':name','name'..i)
         stmt:bind(':data',binary_data,true)
         stmt:bind(':price',i,true)
-        stmt:next()
+        stmt:step()
         stmt:reset()
     end
     stmt:finalize()
@@ -58,8 +58,8 @@ do
     os_clock=os.clock()
     stmt=db:prepare(string.format('select * from _%s',time))
     print('stmt type',Q.type(stmt))
-    local row={}
-    while stmt:next(row) do
+    while stmt:step() do
+        local row=stmt:row()
         local id,code,name,data,price=unpack(row)
         if id==(N/2) then
             print('ROW ',id,code,name,data,price)
