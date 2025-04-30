@@ -100,10 +100,12 @@ function M_stmt:is_readonly() end
 function M_stmt:bind(key,value,alt) end
 
 
----@generic T:table
----@param row T? # optional table to fill with row data if available.
----@return (true|T)? # `true` if expected result is obtained, `false` if no more rows (only when `row` is given).
-function M_stmt:next(row) end
+---@return true?  # true means a new row of data is ready for processing
+function M_stmt:step() end
+
+--- # be sure that s:step() returned true before calling this function
+---@return table
+function M_stmt:row() end
 
 
 function M_stmt:reset() end
