@@ -384,44 +384,37 @@ static int lsqlite__stmt_col(lua_State * L,sqlite3_stmt * stmt,int q_index){
     return 1;
 }
 
-
-static int lsqlite_stmt_next(lua_State * L){
+static int lsqlite_stmt_step(lua_State * L){
     sqlite3_stmt * stmt=lsqlite__tostmt(L);
     int rc=sqlite3_step(stmt);
-    int type=lua_type(L, 2);
-    if (type==LUA_TTABLE){
-        if (rc==SQLITE_DONE)
-            return 0;
-        if (rc==SQLITE_ROW){
-            lua_settop(L, 2);
-            int count=sqlite3_column_count(stmt);
-            int i;
-            const char * name;
-            //lua_createtable(L, count, count);
-            for(i=0;i<count;){
-                lsqlite__stmt_col(L,stmt,i);
-                name = sqlite3_column_name(stmt, i );
-                if (name){
-                    lua_pushvalue(L, -1);
-                    lua_setfield(L,-3,name);
-                }
-                lua_rawseti(L,-2,++i);
-            }
-            return 1;
-        }
-        lsqlite__stmt_check_rc(L, stmt, rc);
-        return luaL_error(L, "unexpected rc %d",rc);
-    }
     if (rc==SQLITE_DONE){
+        return 0;
+    }
+    if (rc==SQLITE_ROW){
         lua_pushboolean(L, 1);
         return 1;
     }
-    sqlite3_reset(stmt);
-    if (rc==SQLITE_ROW){
-        return luaL_error(L, "bad argument #2 (table expected)");
-    }
     lsqlite__stmt_check_rc(L, stmt, rc);
     return luaL_error(L, "unexpected rc %d",rc);
+}
+
+
+static int lsqlite_stmt_row(lua_State * L){
+    sqlite3_stmt * stmt=lsqlite__tostmt(L);
+    int count=sqlite3_column_count(stmt);
+    int i;
+    const char * name;
+    lua_createtable(L, count, count);
+    for(i=0;i<count;){
+        lsqlite__stmt_col(L,stmt,i);
+        name = sqlite3_column_name(stmt, i );
+        if (name){
+            lua_pushvalue(L, -1);
+            lua_setfield(L,-3,name);
+        }
+        lua_rawseti(L,-2,++i);
+    }
+    return 1;
 }
 
 static int lsqlite_stmt_reset(lua_State * L){
@@ -447,7 +440,8 @@ static int lsqlite_stmt_clear(lua_State * L){
 
 static const struct luaL_Reg lsqlite_stmt_mt[] = {
     {"bind",lsqlite_stmt_bind},
-    {"next",lsqlite_stmt_next},
+    {"step",lsqlite_stmt_step},
+    {"row",lsqlite_stmt_row},
     {"reset",lsqlite_stmt_reset},
     {"clear",lsqlite_stmt_clear},
     {"finalize",lsqlite_stmt_finalize},  
