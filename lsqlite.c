@@ -294,8 +294,8 @@ static void lsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int
                     else
                         rc=sqlite3_bind_double(stmt, q_index, lua_tonumber(L,l_value_idex));
                 }
+                break;
             }
-            break;
         case LUA_TSTRING:{
                 size_t sz;
                 const char * value=lua_tolstring(L,l_value_idex,&sz);
@@ -303,8 +303,8 @@ static void lsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int
                     rc=sqlite3_bind_blob(stmt,q_index,value,sz,SQLITE_TRANSIENT);
                 }else
                     rc=sqlite3_bind_text(stmt,q_index,value,sz,SQLITE_TRANSIENT);
+                break;
             }
-            break;
         case LUA_TBOOLEAN:rc= sqlite3_bind_int(stmt,q_index,lua_toboolean(L,l_value_idex));break;
         default: luaL_error(L,"invalid type");return ;
     } 
@@ -388,6 +388,34 @@ static int lsqlite_stmt_step(lua_State * L){
     return luaL_error(L, "unexpected rc %d",rc);
 }
 
+static int lsqlite_stmt_col(lua_State * L){
+    sqlite3_stmt * stmt=lsqlite__tostmt(L);
+    int icol=-1;
+    int count;
+    if (lua_type(L, 2)==LUA_TSTRING){
+        const char * name=lua_tostring(L, 2);
+        count=sqlite3_column_count(stmt);
+        for(int i=0;i<count;i++){
+            const char * colname = sqlite3_column_name(stmt, i);
+            if (colname && strcmp(name,colname)==0){
+                icol=i;
+                break;
+            }
+        }
+        if (icol==-1) 
+            return luaL_error(L,"col with name '%s' is not found",name);
+    }else{
+        icol=luaL_checkint(L, 2);
+        count=sqlite3_column_count(stmt);
+        if (icol<0 || icol>=count)
+            return luaL_error(L,"col index is out of range");
+    }
+    lsqlite__stmt_col(L,stmt,icol);
+    lua_pushinteger(L, icol);
+    return 2;
+}
+
+
 
 static int lsqlite_stmt_row(lua_State * L){
     sqlite3_stmt * stmt=lsqlite__tostmt(L);
@@ -432,6 +460,7 @@ static const struct luaL_Reg lsqlite_stmt_mt[] = {
     {"bind",lsqlite_stmt_bind},
     {"step",lsqlite_stmt_step},
     {"row",lsqlite_stmt_row},
+    {"col",lsqlite_stmt_col},
     {"reset",lsqlite_stmt_reset},
     {"clear",lsqlite_stmt_clear},
     {"finalize",lsqlite_stmt_finalize},  
