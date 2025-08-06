@@ -350,8 +350,21 @@ static int lsqlite_stmt_bind(lua_State * L){
 
 static int lsqlite__stmt_col(lua_State * L,sqlite3_stmt * stmt,int q_index){
     int type=sqlite3_column_type(stmt,q_index);
+    if (type==SQLITE_INTEGER){
+        sqlite_int64 i64 = sqlite3_column_int64(stmt,q_index);
+        lua_Integer i = (lua_Integer )i64;
+        if (i == i64) {
+            lua_pushinteger(L, i);
+            return 1;
+        }
+        lua_Number n = (lua_Number)i64;
+        if (n == i64) {
+            lua_pushnumber(L, n);
+            return 1;
+        }
+        type=SQLITE_TEXT;
+    }
     switch (type) {
-        case SQLITE_INTEGER:lua_pushinteger(L,sqlite3_column_int64(stmt,q_index));break;
         case SQLITE_TEXT:lua_pushlstring(L,(const char *)sqlite3_column_text(stmt,q_index),sqlite3_column_bytes(stmt,q_index));break;
         case SQLITE_NULL:lua_pushnil(L);break;
         case SQLITE_FLOAT:lua_pushnumber(L,sqlite3_column_double(stmt,q_index));break;
