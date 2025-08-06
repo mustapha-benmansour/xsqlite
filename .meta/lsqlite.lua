@@ -103,9 +103,15 @@ function M_stmt:bind(key,value,alt) end
 ---@return true?  # true means a new row of data is ready for processing
 function M_stmt:step() end
 
---- # be sure that s:step() returned true before calling this function
+-- make sure that `s:step()` returned true before calling this function.
 ---@return table
 function M_stmt:row() end
+
+-- make sure that `s:step()` returned true before calling this function.
+---@param n string|integer
+---@return nil|string|integer|number value
+---@return integer index
+function M_stmt:col(n) end
 
 
 function M_stmt:reset() end

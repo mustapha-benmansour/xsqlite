@@ -63,6 +63,16 @@ do
         local id,code,name,data,price=unpack(row)
         if id==(N/2) then
             print('ROW ',id,code,name,data,price)
+            print('COL id',stmt:col('id'))
+            print('COL code',stmt:col('code'))
+            print('COL name',stmt:col('name'))
+            print('COL data',stmt:col('data'))
+            print('COL price',stmt:col('price'))
+            print('COL 0',stmt:col(0))
+            print('COL 1',stmt:col(1))
+            print('COL 2',stmt:col(2))
+            print('COL 3',stmt:col(3))
+            print('COL 4',stmt:col(4))
         end
     end   
     stmt:finalize()
