@@ -62,7 +62,7 @@ static int lsqlite_type(lua_State * L){
             } 
         }
     }
-    lua_pushnil(L);
+    lua_pushstring(L, luaL_typename(L, 1));
     return 1;
 }
 

@@ -66,7 +66,7 @@ function M_db:is_readonly(name) end
 function M_db:name(i) end
 
 ---@param name string? # schema/database name default is 'main'
-function M:filename(name) end
+function M_db:filename(name) end
 
 
 --- returns last inserted rowid
