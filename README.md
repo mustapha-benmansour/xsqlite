@@ -40,7 +40,7 @@ print(Q.type(stmt)) --> finalized statement
 ```
 ```lua
 -- simple insert (bind array)
-stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,?,?);')
+local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,?,?);')
 stmt:bind{0,'name 0',Q.blob(binary),Q.real(0)}
 stmt:step() 
 stmt:finalize() 
@@ -48,7 +48,7 @@ stmt:finalize()
 
 ```lua
 -- insert (bind array)
-stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,?,?);')
+local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,?,?);')
 for i=11,20 do 
     stmt:bind{i,'name '..i,blob,i*1.1}
     stmt:step() 
@@ -63,7 +63,7 @@ stmt:finalize()
 
 ```lua
 -- insert (bind table=map|array) 
-stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,:image,:price);')
+local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,:image,:price);')
 for i=31,40 do 
     stmt:bind{i,'name '..i,image=Q.blob(binary),price=Q.real(i*1.1)}
     stmt:step() 
@@ -73,7 +73,7 @@ stmt:finalize()
 
 ```lua
 -- insert (bind values)
-stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,:image,:price);')
+local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,:image,:price);')
 for i=41,50 do 
     stmt:bind(1,i)
     stmt:bind(2,'name '..i)
@@ -110,7 +110,7 @@ stmt:finalize()
 
 ```lua
 -- insert (bind same table with shared fields)
-stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (:code,:name,:image,:price);')
+local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (:code,:name,:image,:price);')
 local row={image=Q.blob(binary)}
 for i=31,40 do 
     row.id=1
@@ -125,7 +125,7 @@ stmt:finalize()
 
 ```lua
 -- insert (bind with same fieds)
-stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (:code,:name,:image,:price);')
+local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (:code,:name,:image,:price);')
 local row={image=Q.blob(binary)}
 for i=31,40 do 
     row.id=1
