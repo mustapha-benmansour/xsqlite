@@ -3,6 +3,7 @@ local N=100000
 do
     local os_clock=os.clock()
     local Q=require'lsqlite'
+
     --print(Q.version())
     local db=Q.open('test.db')
     print('db type',Q.type(db))
@@ -28,7 +29,7 @@ do
     stmt:finalize()
     stmt =db:prepare(string.format('insert into _%s (code,name,data,price) values(:code,:name,:data,:price)',time))
     print('stmt type',Q.type(stmt))
-    local binary_data = string.char(0x00, 0x01, 0x02, 0x03, 0x04)
+    local blob = Q.blob(string.char(0x00, 0x01, 0x02, 0x03, 0x04))
     --local bind={data={binary_data},price={}}
     for i = 1, N do
         --stmt:bind_all('args',i,'name'..i)
@@ -44,8 +45,8 @@ do
         --stmt:bind_all(bind)
         stmt:bind(':code',1)
         stmt:bind(':name','name'..i)
-        stmt:bind(':data',binary_data,true)
-        stmt:bind(':price',i,true)
+        stmt:bind(':data',blob)
+        stmt:bind(':price',Q.real(i))
         stmt:step()
         stmt:reset()
     end
@@ -62,6 +63,10 @@ do
         local row=stmt:row()
         local id,code,name,data,price=unpack(row)
         if id==(N/2) then
+            local meta=stmt:meta()
+            for key, value in pairs(meta) do
+                print('meta : ',key,value)
+            end
             print('ROW ',id,code,name,data,price)
             print('COL id',stmt:col('id'))
             print('COL code',stmt:col('code'))

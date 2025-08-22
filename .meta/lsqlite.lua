@@ -5,13 +5,36 @@ local M={}
 
 
 
+---@class lsqlite.real*
+
+---@class lsqlite.blob*
+
+
 
 ---@return string
 function M.version() end
 
----@param obj lsqlite.db*|lsqlite.stmt*
----@return 'database'|'closed database'|'statement'|'finalized statement'|nil
+---@alias lsqlite.type
+---|'real'
+---|'blob'
+---|'database'
+---|'closed database'
+---|'statement'
+---|'finalized statement'
+
+---@param obj any|lsqlite.db*|lsqlite.stmt*|lsqlite.real*|lsqlite.blob*
+---@return lsqlite.type|type
 function M.type(obj) end
+
+
+---@param number number?
+---@return lsqlite.real*
+function M.real(number) end
+
+---@param blob string?
+---@return lsqlite.blob*
+function M.blob(blob) end
+
 
 
 ---@alias lsqlite-open-flag 
@@ -82,10 +105,11 @@ function M_db:prepare(query) end
 local M_stmt={}
 
 ---@alias lsqlite.stmt-bind-key string|integer
----@alias lsqlite.stmt-bind-val nil|string|integer|boolean|{[1]:number}|{[1]:string} 
+---@alias lsqlite.stmt-bind-val nil|string|integer|boolean|lsqlite.real*|lsqlite.blob* 
 ---@alias lsqlite.stmt-bind-obj {[lsqlite.stmt-bind-key]:lsqlite.stmt-bind-val}
----@alias lsqlite.stmt-row {[string|integer]:nil|string|integer|number}
-
+---@alias lsqlite.stmt-col-key string|integer
+---@alias lsqlite.stmt-col-val nil|string|number
+---@alias lsqlite.stmt-row {[lsqlite.stmt-col-key]:lsqlite.stmt-col-val}
 
 
 function M_stmt:finalize() end
@@ -95,22 +119,39 @@ function M_stmt:is_readonly() end
 
 ---@param key lsqlite.stmt-bind-key
 ---@param value lsqlite.stmt-bind-val
----@param alt true? # tell the function to use the correspondant alternative type of value's type (true for string to use blob)(true for number to use double (default is integer))
 ---@overload fun(self:lsqlite.stmt*,obj:lsqlite.stmt-bind-obj)
-function M_stmt:bind(key,value,alt) end
+function M_stmt:bind(key,value) end
 
 
 ---@return true?  # true means a new row of data is ready for processing
 function M_stmt:step() end
 
+---usage: 
+---```lua
+--- local stmt=db:prepare'SELECT id,name,image,price FROM tb' -- image may be null
+--- assert(stmt:step())
+--- local meta=stmt:meta() 
+--- local id_index=meta.id 
+--- print(id_index) --> 0
+--- local name_index=meta.name 
+--- print(name_index) --> 1
+--- local id_type = meta[id_index]
+--- print(id_type) --> 'integer'
+--- print(meta[name_index]) --> 'text'
+--- print(meta[meta.image]) --> 'blob' or 'null'
+--- print(meta[meta.price]) --> 'real'
+---```
 -- make sure that `s:step()` returned true before calling this function.
----@return table
+---@return {[integer]:'integer'|'real'|'text'|'blob'|'null'}|{[string]:integer} # 
+function M_stmt:meta() end
+
+-- make sure that `s:step()` returned true before calling this function.
+---@return lsqlite.stmt-row|table # we use table to ignore lsp warnings
 function M_stmt:row() end
 
 -- make sure that `s:step()` returned true before calling this function.
----@param n string|integer
----@return nil|string|integer|number value
----@return integer index
+---@param n string|integer # 0 based index or name
+---@return lsqlite.stmt-col-val value
 function M_stmt:col(n) end
 
 
