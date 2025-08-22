@@ -1,7 +1,7 @@
 
 
 ##Usage
-`lua
+```lua
 local Q=require'lsqlite'
 
 local db=Q.open('data.db','readonly')
@@ -121,4 +121,4 @@ for i=31,40 do
     stmt:step() 
 end
 stmt:finalize() 
-`
+```
