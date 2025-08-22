@@ -77,8 +77,8 @@ local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,:ima
 for i=41,50 do 
     stmt:bind(1,i)
     stmt:bind(2,'name '..i)
-    stmt:bind('image',Q.blob(binary))
-    stmt:bind('price',Q.real(i*1.1))
+    stmt:bind(':image',Q.blob(binary))
+    stmt:bind(':price',Q.real(i*1.1))
     stmt:step() 
 end
 -- with missing fields  
@@ -87,22 +87,22 @@ for i=51,60 do
     stmt:clear() 
     if i % 2== 0 then
         stmt:bind(2,'name '..i)
-        stmt:bind('price',Q.real(i*1.1))
+        stmt:bind(':price',Q.real(i*1.1))
     else
         stmt:bind(1,i)
-        stmt:bind('image',Q.blob(binary))
+        stmt:bind(':image',Q.blob(binary))
     end
     stmt:step() 
 end
 -- with shared value
 for i=51,60 do 
     if i==51 then
-        stmt:bind('image',Q.blob(binary))
+        stmt:bind(':image',Q.blob(binary))
     end
     -- we dont need clear (shared image)
     stmt:bind(1,i)
     stmt:bind(2,'name '..i)
-    stmt:bind('price',Q.real(i*1.1))
+    stmt:bind(':price',Q.real(i*1.1))
     stmt:step() 
 end
 stmt:finalize() 
@@ -118,20 +118,6 @@ for i=31,40 do
     row.price=Q.real(i*1.1)
     -- same image is used for all inserts
     stmt:bind(row)
-    stmt:step() 
-end
-stmt:finalize() 
-```
-
-```lua
--- insert (bind with same fieds)
-local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (:code,:name,:image,:price);')
-local row={image=Q.blob(binary)}
-for i=31,40 do 
-    row.id=1
-    row.name='name '..i
-    row.price=Q.real(i*1.1)
-    -- same image is used for all inserts
     stmt:step() 
 end
 stmt:finalize() 
