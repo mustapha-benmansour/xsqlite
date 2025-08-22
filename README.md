@@ -95,7 +95,7 @@ for i=51,60 do
     stmt:step() 
 end
 -- with shared value
-for i=51,60 do 
+for i=61,70 do 
     if i==51 then
         stmt:bind(':image',Q.blob(binary))
     end
@@ -112,7 +112,7 @@ stmt:finalize()
 -- insert (bind same table with shared fields)
 local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (:code,:name,:image,:price);')
 local row={image=Q.blob(binary)}
-for i=31,40 do 
+for i=71,80 do 
     row.id=1
     row.name='name '..i
     row.price=Q.real(i*1.1)
