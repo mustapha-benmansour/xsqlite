@@ -9,9 +9,37 @@ local Q=require'lsqlite'
 local db=Q.open('data.db','readonly')
 print(Q.type(db)) --> database
 print(db:is_readonly()) --> true
-db:close()
+db:close() -- sqlite3_close() used internally
 print(Q.type(db)) --> closed database
 ```
+
+```lua
+do
+    local db=Q.open('data.db','readonly')
+end
+-- database is closed here
+```
+
+```lua
+do
+    local db=Q.open('data.db','readonly')
+    local stmt=db:prepare('SELECT * FROM sqlite_master')
+    db=nil
+    collectgarbage("collect") -- sqlite3_close_v2() used internally
+end
+-- statement is closed here (then close db)
+```
+
+
+```lua
+do
+    local db=Q.open('data.db','readonly')
+    local stmt=db:prepare('SELECT * FROM sqlite_master')
+end
+-- statement is closed here (__gc -> sqlite3_finalize )
+-- database is closed here (__gc -> sqlite3_close_v2 )
+```
+
 
 ```lua
 local db=Q.open('data.db') -- default mode is create+readwrite 
