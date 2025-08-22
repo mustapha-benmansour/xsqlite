@@ -50,7 +50,7 @@ stmt:finalize()
 -- insert (bind array)
 local stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,?,?);')
 for i=11,20 do 
-    stmt:bind{i,'name '..i,blob,i*1.1}
+    stmt:bind{i,'name '..i,Q.blob(binary),Q.real(i*1.1)}
     stmt:step() 
 end
 -- with missing fields  
