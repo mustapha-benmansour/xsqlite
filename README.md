@@ -3,20 +3,24 @@
 ##Usage
 ```lua
 local Q=require'lsqlite'
+```
 
+```lua
 local db=Q.open('data.db','readonly')
 print(Q.type(db)) --> database
 print(db:is_readonly()) --> true
 db:close()
 print(Q.type(db)) --> closed database
+```
 
-
-db=Q.open('data.db') -- default mode is create+readwrite 
+```lua
+local db=Q.open('data.db') -- default mode is create+readwrite 
 -- Q.open('data.db') similar to Q.open('data.db','create','readwrite')
 print(db:is_readonly()) --> false
 
 db:exec'CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT,code INTEGER,name TEXT,image BLOB,price REAL);'
-
+```
+```lua
 local binary=string.char(0x00, 0x01, 0x02, 0x03, 0x04) 
 
 -- insert (bind map) 
@@ -33,14 +37,16 @@ for i=1,10 do
 end
 stmt:finalize() 
 print(Q.type(stmt)) --> finalized statement
-
-
+```
+```lua
 -- simple insert (bind array)
 stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,?,?);')
 stmt:bind{0,'name 0',Q.blob(binary),Q.real(0)}
 stmt:step() 
 stmt:finalize() 
+```
 
+```lua
 -- insert (bind array)
 stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,?,?);')
 for i=11,20 do 
@@ -53,7 +59,9 @@ for i=21,30 do
     stmt:step() -- missing fields are treated as nil (null in sqlite)
 end
 stmt:finalize() 
+```
 
+```lua
 -- insert (bind table=map|array) 
 stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,:image,:price);')
 for i=31,40 do 
@@ -61,7 +69,9 @@ for i=31,40 do
     stmt:step() 
 end
 stmt:finalize() 
+```
 
+```lua
 -- insert (bind values)
 stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (?,?,:image,:price);')
 for i=41,50 do 
@@ -96,7 +106,9 @@ for i=51,60 do
     stmt:step() 
 end
 stmt:finalize() 
+```
 
+```lua
 -- insert (bind same table with shared fields)
 stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (:code,:name,:image,:price);')
 local row={image=Q.blob(binary)}
@@ -109,7 +121,9 @@ for i=31,40 do
     stmt:step() 
 end
 stmt:finalize() 
+```
 
+```lua
 -- insert (bind with same fieds)
 stmt=db:prepare('INSERT INTO data (code,name,image,price) VALUES (:code,:name,:image,:price);')
 local row={image=Q.blob(binary)}
