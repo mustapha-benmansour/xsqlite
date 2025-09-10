@@ -166,14 +166,15 @@ mode:
 - `create`
 - `readonly`
 <details>
-    <summary><b>Usage</b></summary>
-    <p>
+<summary>Usage</summary>
+<p>
+
 ```lua
 local db=Q.open('file.db','readonly') 
 local db=Q.open('file.db','readwrite') -- dont create (we expect and existing database) 
 local db=Q.open('file.db','readwrite','create') -- create database if not exist
 ```
-    </p>
+</p>
 </details>
 
 ##### `Q.type(any) -> string`
@@ -188,6 +189,7 @@ or lua types : `nil` `number` `string` ...
 <details>
 <summary><b>Usage</b></summary>
 <p>
+
 ```lua
 local blob=Q.blob(binary)
 print(Q.type(blob)) --> blob
