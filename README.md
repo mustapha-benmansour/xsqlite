@@ -167,9 +167,9 @@ mode:
 - `readonly`
 <details>
 <summary><b>Example</b></summary>
-```lua
+<p>```lua
 local db=Q.open('file.db','readonly') 
 local db=Q.open('file.db','readwrite') -- dont create (we expect and existing database) 
 local db=Q.open('file.db','readwrite','create') -- create database if not exist
-```
+```</p>
 </details>
