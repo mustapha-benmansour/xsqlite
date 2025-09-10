@@ -161,9 +161,15 @@ stmt:finalize()
 #### `Q.blob(data:string) -> blob*`
 #### `Q.real(data:number) -> real*`
 #### `Q.open(filename:string,...:mode) -> real*`
-##### `modes : 'readwrite' 'create' 'readonly'
+mode:
+- `readwrite`
+- `create`
+- `readonly`
+<details>
+<summary><b>Example</b></summary>
 ```lua
 local db=Q.open('file.db','readonly') 
 local db=Q.open('file.db','readwrite') -- dont create (we expect and existing database) 
 local db=Q.open('file.db','readwrite','create') -- create database if not exist
 ```
+</details>
