@@ -183,6 +183,7 @@ type:
 - `blob`
 - `real`
 or lua types : `nil` `number` `string` ...
+<details>
 <summary><b>Example</b></summary>
 <p>```lua
 local blob=Q.blob(binary)
