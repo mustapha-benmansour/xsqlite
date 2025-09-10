@@ -157,10 +157,9 @@ end
 stmt:finalize() 
 ```
 
-
-#### `Q.blob(data:string) -> blob*`
-#### `Q.real(data:number) -> real*`
-#### `Q.open(filename:string,...:mode) -> real*`
+# `Q.blob(data:string) -> blob*`
+# `Q.real(data:number) -> real*`
+# `Q.open(filename:string,...:mode) -> real*`
 mode:
 - `readwrite`
 - `create`
