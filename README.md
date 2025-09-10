@@ -9,7 +9,7 @@ local Q=require'lsqlite'
 local db=Q.open('data.db','readonly')
 print(Q.type(db)) --> database
 print(db:is_readonly()) --> true
-db:close() -- sqlite3_close() used internally
+db:close() -- sqlite3_close() used internally, may throw error 
 print(Q.type(db)) --> closed database
 ```
 
@@ -25,9 +25,9 @@ do
     local db=Q.open('data.db','readonly')
     local stmt=db:prepare('SELECT * FROM sqlite_master')
     db=nil
-    collectgarbage("collect") -- sqlite3_close_v2() used internally
+    collectgarbage("collect") -- sqlite3_close_v2() used internally, no errors are thrown
 end
--- statement is closed here (then close db)
+-- statement is closed here (then sqlite library will close db if there is no more non-finalized stmts)
 ```
 
 
@@ -36,8 +36,14 @@ do
     local db=Q.open('data.db','readonly')
     local stmt=db:prepare('SELECT * FROM sqlite_master')
 end
--- statement is closed here (__gc -> sqlite3_finalize )
--- database is closed here (__gc -> sqlite3_close_v2 )
+--[[
+    case 1:
+        statement is closed here (__gc -> sqlite3_finalize)     
+        database is closed here (__gc -> sqlite3_close_v2 : db is now closed because there is no more non-finalized stmts )
+    case 2:
+        database is closed here (__gc -> sqlite3_close_v2 : db is still open but once all stmts get finalized,sqlite library will close db )
+    note : no errors are thrown
+]]
 ```
 
 
@@ -150,3 +156,8 @@ for i=71,80 do
 end
 stmt:finalize() 
 ```
+
+
+
+## Q.blob(data:string) -> blob*
+## Q.real(data:number) -> real*

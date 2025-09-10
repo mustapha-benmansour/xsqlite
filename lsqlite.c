@@ -334,8 +334,8 @@ static void lsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int
     switch(lua_type(L,l_value_idex)){
         case LUA_TNIL:rc= sqlite3_bind_null(stmt,q_index);break;
         case LUA_TNUMBER:{
-                lua_Number n = lua_tonumber(L, q_index);
-                lua_Integer i = lua_tointeger(L, q_index);
+                lua_Number n = lua_tonumber(L, l_value_idex);
+                lua_Integer i = lua_tointeger(L, l_value_idex);
                 if (i == n)
                     rc=sqlite3_bind_int64(stmt,q_index,lua_tointeger(L,l_value_idex));
                 else
@@ -349,6 +349,25 @@ static void lsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int
                 break;
             }
         case LUA_TBOOLEAN:rc= sqlite3_bind_int(stmt,q_index,lua_toboolean(L,l_value_idex));break;
+        /*case LUA_TTABLE:{
+            lua_rawgeti(L, l_value_idex, 1);
+            rc=lua_type(L, -1);
+            if (rc==LUA_TNUMBER){
+                lua_Number n = lua_tonumber(L, -1);
+                rc=sqlite3_bind_double(stmt, q_index, n);
+                break;
+            }else if (rc==LUA_TSTRING) {
+                size_t sz;
+                const char * blob=lua_tolstring(L,-1,&sz);
+                rc=sqlite3_bind_blob(stmt,q_index,blob,sz,SQLITE_TRANSIENT);
+            }else if (rc==LUA_TNIL){
+                rc=sqlite3_bind_null(stmt,q_index);
+            }else{
+                luaL_error(L,"invalid type");return ;
+            }
+            lua_pop(L, 1);
+            break;
+        }*/
         case LUA_TUSERDATA:{
             void * p=lua_touserdata(L, l_value_idex);
             if (p && lua_getmetatable(L, l_value_idex)){
@@ -521,21 +540,32 @@ static int lsqlite_stmt_col(lua_State * L){
 
 
 
-
 static int lsqlite_stmt_row(lua_State * L){
     sqlite3_stmt * stmt=lsqlite__tostmt(L);
     int count=sqlite3_column_count(stmt);
     int i;
     const char * name;
+    const char * opt=lua_tostring(L, 2);
+    if (!opt) opt="*";
     lua_createtable(L, count, count);
     for(i=0;i<count;){
         lsqlite__stmt_col(L,stmt,i);
-        name = sqlite3_column_name(stmt, i );
-        if (name){
-            lua_pushvalue(L, -1);
-            lua_setfield(L,-3,name);
+        if (opt[0]=='i'){
+            lua_rawseti(L,-2,++i);
+        }else if (opt[0]=='n'){
+            name = sqlite3_column_name(stmt, i++ );
+            if (name){
+                lua_pushvalue(L, -1);
+                lua_setfield(L,-3,name);
+            }
+        }else{
+            name = sqlite3_column_name(stmt, i );
+            if (name){
+                lua_pushvalue(L, -1);
+                lua_setfield(L,-3,name);
+            }
+            lua_rawseti(L,-2,++i);
         }
-        lua_rawseti(L,-2,++i);
     }
     return 1;
 }
