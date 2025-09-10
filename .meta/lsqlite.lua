@@ -79,16 +79,17 @@ an error is to use this function
 function M_db:is_autocommit() end
 
 
----@param name string? # schema/database name default is 'main'
+---@param name string? # scheme/database name default is 'main'
 ---@return boolean
 function M_db:is_readonly(name) end
 
 --- returns name of attached database/conn at index i
 ---@param i integer # 0:main 1:temp +2: attached
----@return string
+---@return string name
 function M_db:name(i) end
 
 ---@param name string? # schema/database name default is 'main'
+---@return string name
 function M_db:filename(name) end
 
 
@@ -146,8 +147,9 @@ function M_stmt:step() end
 function M_stmt:meta() end
 
 -- make sure that `s:step()` returned true before calling this function.
+---@param mode 'i'|'n'|'*'?
 ---@return lsqlite.stmt-row|table # we use table to ignore lsp warnings
-function M_stmt:row() end
+function M_stmt:row(mode) end
 
 -- make sure that `s:step()` returned true before calling this function.
 ---@param n string|integer # 0 based index or name

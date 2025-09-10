@@ -160,23 +160,6 @@ stmt:finalize()
 
 ##### `Q.blob(data:string) -> blob`
 ##### `Q.real(data:number) -> real`
-##### `Q.open(filename:string,...:mode) -> db`
-mode:
-- `readwrite`
-- `create`
-- `readonly`
-<details>
-<summary>Usage</summary>
-<p>
-
-```lua
-local db=Q.open('file.db','readonly') 
-local db=Q.open('file.db','readwrite') -- dont create (we expect and existing database) 
-local db=Q.open('file.db','readwrite','create') -- create database if not exist
-```
-</p>
-</details>
-
 ##### `Q.type(any) -> string`
 type:
 - `database`
@@ -206,3 +189,40 @@ print(Q.type(db)) --> closed database
 ```
 </p>
 </details>
+
+##### `Q.open(filename:string,...:mode) -> db`
+mode:
+- `readwrite`
+- `create`
+- `readonly`
+<details>
+<summary>Usage</summary>
+<p>
+
+```lua
+local db=Q.open('file.db','readonly') 
+local db=Q.open('file.db','readwrite') -- dont create (we expect and existing database) 
+local db=Q.open('file.db','readwrite','create') -- create database if not exist
+```
+</p>
+</details>
+
+##### `db:close()`
+##### `db:exec(query:string)`
+##### `db:changes() -> integer`
+##### `db:is_autocommit() -> boolean`
+##### `db:is_readonly(name:string?) -> boolean`
+##### `db:name(i:integer) -> string`
+##### `db:filename(name:string?) -> string`
+##### `db:id() -> integer`
+##### `db:prepare(query:string) -> stmt`
+##### `stmt:finalize()`
+##### `stmt:is_readonly() -> boolean`
+##### `stmt:bind(row:table)`
+##### `stmt:bind(key:integer|string,value:string|integer|boolean|blob|real)`
+##### `stmt:step() -> true?`
+##### `stmt:meta() -> table`
+##### `stmt:row(mode:string?) -> table`
+##### `stmt:col(key:integer|string) -> table`
+##### `stmt:reset()`
+##### `stmt:clear()`
