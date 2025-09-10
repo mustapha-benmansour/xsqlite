@@ -158,9 +158,9 @@ stmt:finalize()
 ```
 
 
-##### `Q.blob(data:string) -> blob*`
-##### `Q.real(data:number) -> real*`
-##### `Q.open(filename:string,...:mode) -> real*`
+##### `Q.blob(data:string) -> blob`
+##### `Q.real(data:number) -> real`
+##### `Q.open(filename:string,...:mode) -> db`
 mode:
 - `readwrite`
 - `create`
@@ -171,5 +171,31 @@ mode:
 local db=Q.open('file.db','readonly') 
 local db=Q.open('file.db','readwrite') -- dont create (we expect and existing database) 
 local db=Q.open('file.db','readwrite','create') -- create database if not exist
+```</p>
+</details>
+
+##### `Q.type(any) -> string`
+type:
+- `database`
+- `closed database`
+- `statement`
+- `finalized statement`
+- `blob`
+- `real`
+or lua types : `nil` `number` `string` ...
+<summary><b>Example</b></summary>
+<p>```lua
+local blob=Q.blob(binary)
+print(Q.type(blob)) --> blob
+local real=Q.blob(9.87)
+print(Q.type(real)) --> real
+local db=Q.open('file.db') 
+print(Q.type(db)) --> database
+local stmt=db:prepare('SELECT * FROM sqlite_master')
+print(Q.type(stmt)) --> statement
+stmt:finalize()
+print(Q.type(stmt)) --> finalized statement
+db:close()
+print(Q.type(db)) --> closed database
 ```</p>
 </details>
