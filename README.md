@@ -166,12 +166,14 @@ mode:
 - `create`
 - `readonly`
 <details>
-<summary><b>Example</b></summary>
-<p>```lua
+<summary><b>Usage</b></summary>
+<p>
+```lua
 local db=Q.open('file.db','readonly') 
 local db=Q.open('file.db','readwrite') -- dont create (we expect and existing database) 
 local db=Q.open('file.db','readwrite','create') -- create database if not exist
-```</p>
+```
+</p>
 </details>
 
 ##### `Q.type(any) -> string`
@@ -184,8 +186,9 @@ type:
 - `real`
 or lua types : `nil` `number` `string` ...
 <details>
-<summary><b>Example</b></summary>
-<p>```lua
+<summary><b>Usage</b></summary>
+<p>
+```lua
 local blob=Q.blob(binary)
 print(Q.type(blob)) --> blob
 local real=Q.blob(9.87)
@@ -198,5 +201,6 @@ stmt:finalize()
 print(Q.type(stmt)) --> finalized statement
 db:close()
 print(Q.type(db)) --> closed database
-```</p>
+```
+</p>
 </details>
