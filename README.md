@@ -158,5 +158,5 @@ stmt:finalize()
 ```
 
 
-### `Q.blob(data:string) -> blob*`
-### `Q.real(data:number) -> real*`
+#### `Q.blob(data:string) -> blob*`
+#### `Q.real(data:number) -> real*`
