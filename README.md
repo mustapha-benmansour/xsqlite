@@ -42,6 +42,7 @@ end
         database is closed here (__gc -> sqlite3_close_v2 : db is now closed because there is no more non-finalized stmts )
     case 2:
         database is closed here (__gc -> sqlite3_close_v2 : db is still open but once all stmts get finalized,sqlite library will close db )
+        statement is closed here (__gc -> sqlite3_finalize)  (then db is closed too)
     note : no errors are thrown
 ]]
 ```
