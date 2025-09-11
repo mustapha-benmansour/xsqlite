@@ -108,9 +108,6 @@ local M_stmt={}
 ---@alias lsqlite.stmt-bind-key string|integer
 ---@alias lsqlite.stmt-bind-val nil|string|integer|boolean|lsqlite.real*|lsqlite.blob* 
 ---@alias lsqlite.stmt-bind-obj {[lsqlite.stmt-bind-key]:lsqlite.stmt-bind-val}
----@alias lsqlite.stmt-col-key string|integer
----@alias lsqlite.stmt-col-val nil|string|number
----@alias lsqlite.stmt-row {[lsqlite.stmt-col-key]:lsqlite.stmt-col-val}
 
 
 function M_stmt:finalize() end
@@ -147,13 +144,16 @@ function M_stmt:step() end
 function M_stmt:meta() end
 
 -- make sure that `s:step()` returned true before calling this function.
----@param mode 'i'|'n'|'*'?
----@return lsqlite.stmt-row|table # we use table to ignore lsp warnings
-function M_stmt:row(mode) end
+---@return {[string]:nil|string|number}|table # we use table to ignore lsp warnings
+function M_stmt:row() end
+
+-- make sure that `s:step()` returned true before calling this function.
+---@return {[integer]:nil|string|number}|table # we use table to ignore lsp warnings
+function M_stmt:irow() end
 
 -- make sure that `s:step()` returned true before calling this function.
 ---@param n string|integer # 0 based index or name
----@return lsqlite.stmt-col-val value
+---@return nil|string|number value
 function M_stmt:col(n) end
 
 

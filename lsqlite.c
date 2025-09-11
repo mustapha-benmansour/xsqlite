@@ -538,33 +538,27 @@ static int lsqlite_stmt_col(lua_State * L){
 }
 
 
-
+static int lsqlite_stmt_irow(lua_State * L){
+    sqlite3_stmt * stmt=lsqlite__tostmt(L);
+    int count=sqlite3_column_count(stmt);
+    lua_createtable(L, count, 0);
+    for(int i=0;i<count;){
+        lsqlite__stmt_col(L,stmt,i);
+        lua_rawseti(L,-2,++i);
+    }
+    return 1;
+}
 
 static int lsqlite_stmt_row(lua_State * L){
     sqlite3_stmt * stmt=lsqlite__tostmt(L);
     int count=sqlite3_column_count(stmt);
-    int i;
-    const char * name;
-    const char * opt=lua_tostring(L, 2);
-    if (!opt) opt="*";
-    lua_createtable(L, count, count);
-    for(i=0;i<count;){
-        lsqlite__stmt_col(L,stmt,i);
-        if (opt[0]=='i'){
-            lua_rawseti(L,-2,++i);
-        }else if (opt[0]=='n'){
-            name = sqlite3_column_name(stmt, i++ );
-            if (name){
-                lua_pushvalue(L, -1);
-                lua_setfield(L,-3,name);
-            }
-        }else{
-            name = sqlite3_column_name(stmt, i );
-            if (name){
-                lua_pushvalue(L, -1);
-                lua_setfield(L,-3,name);
-            }
-            lua_rawseti(L,-2,++i);
+    lua_createtable(L, 0, count);
+    for(int i=0;i<count;i++){
+        const char * name = sqlite3_column_name(stmt, i );
+        if (name){
+            lua_pushstring(L, name);
+            lsqlite__stmt_col(L,stmt,i);
+            lua_rawset(L, -3);
         }
     }
     return 1;
@@ -597,6 +591,7 @@ static const struct luaL_Reg lsqlite_stmt_mt[] = {
     {"meta",lsqlite_stmt_meta},
     {"col",lsqlite_stmt_col},
     {"row",lsqlite_stmt_row},
+    {"irow",lsqlite_stmt_irow},
     {"reset",lsqlite_stmt_reset},
     {"clear",lsqlite_stmt_clear},
     {"finalize",lsqlite_stmt_finalize},  
