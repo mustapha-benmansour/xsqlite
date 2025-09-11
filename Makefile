@@ -29,5 +29,5 @@ test: $(OUT)
 install:
 
 clean:
-	@rm -fv $(APP)
+	@rm -fv $(OUT)
 
