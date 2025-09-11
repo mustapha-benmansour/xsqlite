@@ -2,7 +2,7 @@
 
 ##Usage
 ```lua
-local Q=require'lsqlite'
+local Q=require'xsqlite'
 ```
 
 ```lua
@@ -223,7 +223,8 @@ local db=Q.open('file.db','readwrite','create') -- create database if not exist
 ##### `stmt:bind(key:integer|string,value:string|integer|boolean|blob|real)`
 ##### `stmt:step() -> true?`
 ##### `stmt:meta() -> table`
-##### `stmt:row(mode:string?) -> table`
+##### `stmt:row() -> hashmap|table`
+##### `stmt:irow() -> array|table`
 ##### `stmt:col(key:integer|string) -> table`
 ##### `stmt:reset()`
 ##### `stmt:clear()`

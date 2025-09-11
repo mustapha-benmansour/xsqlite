@@ -2,4 +2,4 @@ build/
 src/
 build.sh
 test.db
-lsqlite.so
+xsqlite.so

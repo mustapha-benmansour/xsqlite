@@ -2,7 +2,7 @@ local N=100000
 
 do
     local os_clock=os.clock()
-    local Q=require'lsqlite'
+    local Q=require'xsqlite'
 
     --print(Q.version())
     local db=Q.open('test.db')

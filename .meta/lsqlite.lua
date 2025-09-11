@@ -1,20 +1,20 @@
 
 
----@meta lsqlite
+---@meta xsqlite
 local M={}
 
 
 
----@class lsqlite.real*
+---@class xsqlite.real*
 
----@class lsqlite.blob*
+---@class xsqlite.blob*
 
 
 
 ---@return string
 function M.version() end
 
----@alias lsqlite.type
+---@alias xsqlite.type
 ---|'real'
 ---|'blob'
 ---|'database'
@@ -22,35 +22,35 @@ function M.version() end
 ---|'statement'
 ---|'finalized statement'
 
----@param obj any|lsqlite.db*|lsqlite.stmt*|lsqlite.real*|lsqlite.blob*
----@return lsqlite.type|type
+---@param obj any|xsqlite.db*|xsqlite.stmt*|xsqlite.real*|xsqlite.blob*
+---@return xsqlite.type|type
 function M.type(obj) end
 
 
 ---@param number number?
----@return lsqlite.real*
+---@return xsqlite.real*
 function M.real(number) end
 
 ---@param blob string?
----@return lsqlite.blob*
+---@return xsqlite.blob*
 function M.blob(blob) end
 
 
 
----@alias lsqlite-open-flag 
+---@alias xsqlite-open-flag 
 ---|'readonly'
 ---|>'readwrite'
 ---|>'create'
 
 ---@param file string
----@param ... lsqlite-open-flag? # mode
----@return lsqlite.db*
+---@param ... xsqlite-open-flag? # mode
+---@return xsqlite.db*
 function M.open(file,...) end
 
 
 
 
----@class lsqlite.db*
+---@class xsqlite.db*
 local M_db={}
 
 
@@ -98,16 +98,16 @@ function M_db:filename(name) end
 function M_db:id() end
 
 ---@param query string
----@return lsqlite.stmt*
+---@return xsqlite.stmt*
 function M_db:prepare(query) end
 
 
----@class lsqlite.stmt*
+---@class xsqlite.stmt*
 local M_stmt={}
 
----@alias lsqlite.stmt-bind-key string|integer
----@alias lsqlite.stmt-bind-val nil|string|integer|boolean|lsqlite.real*|lsqlite.blob* 
----@alias lsqlite.stmt-bind-obj {[lsqlite.stmt-bind-key]:lsqlite.stmt-bind-val}
+---@alias xsqlite.stmt-bind-key string|integer
+---@alias xsqlite.stmt-bind-val nil|string|integer|boolean|xsqlite.real*|xsqlite.blob* 
+---@alias xsqlite.stmt-bind-obj {[xsqlite.stmt-bind-key]:xsqlite.stmt-bind-val}
 
 
 function M_stmt:finalize() end
@@ -115,9 +115,9 @@ function M_stmt:finalize() end
 ---@return boolean
 function M_stmt:is_readonly() end
 
----@param key lsqlite.stmt-bind-key
----@param value lsqlite.stmt-bind-val
----@overload fun(self:lsqlite.stmt*,obj:lsqlite.stmt-bind-obj)
+---@param key xsqlite.stmt-bind-key
+---@param value xsqlite.stmt-bind-val
+---@overload fun(self:xsqlite.stmt*,obj:xsqlite.stmt-bind-obj)
 function M_stmt:bind(key,value) end
 
 
