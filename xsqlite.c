@@ -122,10 +122,10 @@ static int xsqlite_open(lua_State * L){
     int flags=0;
     int top=lua_gettop(L);
     if (top>1){
-        static const int mode[] = {SQLITE_OPEN_READONLY,SQLITE_OPEN_READWRITE,SQLITE_OPEN_CREATE};
+        static const int modes[] = {SQLITE_OPEN_READONLY,SQLITE_OPEN_READWRITE,SQLITE_OPEN_CREATE};
         static const char *const modenames[] = {"readonly", "readwrite", "create", NULL};
         for (int i=2; i<=top; i++) {
-            flags|=mode[luaL_checkoption(L, i, NULL, modenames)];
+            flags|=modes[luaL_checkoption(L, i, NULL, modenames)];
         }
     }else{
         flags=SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
@@ -328,6 +328,43 @@ static int xsqlite_stmt_is_readonly(lua_State * L){
 }
 
 
+static int xsqlite_stmt_sql(lua_State * L){
+    sqlite3_stmt * stmt=xsqlite__tostmt(L);
+    static const int modes[] = {0,1,2};
+    static const char *const modenames[] = {"original", "expanded", "normalized", NULL};
+    int mode=modes[luaL_checkoption(L, 2, "original", modenames)];
+    if (mode==0){
+        const char * sql=sqlite3_sql(stmt);
+        lua_pushstring(L, sql);
+        return 1;
+    }
+    if (mode==1){
+        const char * sql=sqlite3_expanded_sql(stmt);
+        if (sql){
+            lua_pushstring(L, sql);
+            sqlite3_free((void*)sql);
+        }else
+            lua_pushnil(L);
+    }else{
+        const char * sql;
+        if (mode==2){
+#ifdef SQLITE_ENABLE_NORMALIZE
+            sql=sqlite3_normalized_sql(stmt);
+#else
+            sql=NULL;
+#endif
+        }else{
+            sql=sqlite3_sql(stmt);
+        }
+        if (sql){
+            lua_pushstring(L, sql); 
+        }else{
+            lua_pushnil(L);
+        }
+    }
+    return 1;
+}
+
 
 static void xsqlite__stmt_bind(lua_State * L,sqlite3_stmt * stmt,int q_index,int l_value_idex){
     int rc;
@@ -477,6 +514,9 @@ static int xsqlite_stmt_step(lua_State * L){
         lua_pushboolean(L, 1);
         return 1;
     }
+    /*if (!sqlite3_get_autocommit(sqlite3_db_handle(stmt))){
+        sqlite3_exec(sqlite3_db_handle(stmt), "ROLLBACK;", 0, 0, 0);
+    }*/
     xsqlite__stmt_check_rc(L, stmt, rc);
     return luaL_error(L, "unexpected rc %d",rc);
 }
@@ -586,7 +626,7 @@ static int xsqlite_stmt_clear(lua_State * L){
 
 
 static const struct luaL_Reg xsqlite_stmt_mt[] = {
-    //{"bind",xsqlite_stmt_bind},
+    {"sql",xsqlite_stmt_sql},
     {"step",xsqlite_stmt_step},
     {"meta",xsqlite_stmt_meta},
     {"col",xsqlite_stmt_col},
